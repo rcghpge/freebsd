@@ -5,6 +5,12 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>FreeBSD Community Hub</title>
   <style>
+    :root {
+      --freebsd-red: #AB2B28;
+      --freebsd-dark: #222;
+      --freebsd-light: #f4f4f4;
+    }
+
     body {
       font-family: sans-serif;
       line-height: 1.6;
@@ -12,43 +18,45 @@
       display: flex;
       flex-direction: column;
       min-height: 100vh;
+      background-color: var(--freebsd-light);
+      color: var(--freebsd-dark);
     }
 
     header {
       text-align: center;
       padding: 30px 20px 10px;
+      background-color: var(--freebsd-red);
+      color: white;
     }
 
     h1 {
-      color: #003366; 
       margin-bottom: 10px;
     }
 
     p.tagline {
       margin-top: 0;
       font-size: 1.1em;
-      color: #333;
     }
 
     nav {
       text-align: center;
-      margin-bottom: 20px;
+      background-color: var(--freebsd-dark);
     }
 
     nav ul {
       list-style: none;
-      padding: 0;
+      padding: 10px 0;
       margin: 0;
     }
 
     nav li {
       display: inline-block;
-      margin: 0 10px;
+      margin: 0 12px;
     }
 
     nav a {
       text-decoration: none;
-      color: #003366;
+      color: white;
       font-weight: bold;
     }
 
@@ -58,7 +66,7 @@
 
     main {
       flex: 1;
-      padding: 0 20px;
+      padding: 20px;
       max-width: 800px;
       margin: 0 auto;
     }
@@ -71,7 +79,17 @@
       text-align: center;
       padding: 15px;
       font-size: 0.9em;
-      color: #777;
+      background-color: var(--freebsd-dark);
+      color: white;
+    }
+
+    footer a {
+      color: white;
+      text-decoration: underline;
+    }
+
+    footer a:hover {
+      opacity: 0.8;
     }
   </style>
 </head>
