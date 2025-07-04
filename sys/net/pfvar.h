@@ -690,6 +690,7 @@ struct pf_rule_actions {
 	uint8_t		 set_prio[2];
 	uint8_t		 rt;
 	uint8_t		 allow_opts;
+	uint16_t	 max_pkt_size;
 };
 
 union pf_keth_rule_ptr {
@@ -793,6 +794,12 @@ struct pf_keth_rule {
 	uint32_t		ridentifier;
 };
 
+struct pf_kthreshold {
+	uint32_t		 limit;
+	uint32_t		 seconds;
+	struct counter_rate	*cr;
+};
+
 RB_HEAD(pf_krule_global, pf_krule);
 RB_PROTOTYPE(pf_krule_global, pf_krule, entry_global, pf_krule_compare);
 
@@ -815,6 +822,7 @@ struct pf_krule {
 	struct pf_kpool		 nat;
 	struct pf_kpool		 rdr;
 	struct pf_kpool		 route;
+	struct pf_kthreshold	 pktrate;
 
 	struct pf_counter_u64	 evaluations;
 	struct pf_counter_u64	 packets[2];
@@ -838,6 +846,7 @@ struct pf_krule {
 		u_int32_t		limit;
 		u_int32_t		seconds;
 	}			 max_src_conn_rate;
+	uint16_t		 max_pkt_size;
 	u_int16_t		 qid;
 	u_int16_t		 pqid;
 	u_int16_t		 dnpipe;
@@ -926,7 +935,7 @@ struct pf_ksrc_node {
 	counter_u64_t		 packets[2];
 	u_int32_t		 states;
 	u_int32_t		 conn;
-	struct pf_threshold	 conn_rate;
+	struct pf_kthreshold	 conn_rate;
 	u_int32_t		 creation;
 	u_int32_t		 expire;
 	sa_family_t		 af;
@@ -2520,6 +2529,8 @@ struct pf_state_key *pf_alloc_state_key(int);
 int	pf_translate(struct pf_pdesc *, struct pf_addr *, u_int16_t,
 	    struct pf_addr *, u_int16_t, u_int16_t, int);
 int	pf_translate_af(struct pf_pdesc *);
+bool	pf_init_threshold(struct pf_kthreshold *, uint32_t, uint32_t);
+
 void	pfr_initialize(void);
 void	pfr_cleanup(void);
 int	pfr_match_addr(struct pfr_ktable *, struct pf_addr *, sa_family_t);
@@ -2590,6 +2601,8 @@ int		 pf_tag_packet(struct pf_pdesc *, int);
 int		 pf_addr_cmp(struct pf_addr *, struct pf_addr *,
 		    sa_family_t);
 
+uint8_t*	 pf_find_tcpopt(u_int8_t *, u_int8_t *, size_t,
+		    u_int8_t, u_int8_t);
 u_int16_t	 pf_get_mss(struct pf_pdesc *);
 u_int8_t	 pf_get_wscale(struct pf_pdesc *);
 struct mbuf 	*pf_build_tcp(const struct pf_krule *, sa_family_t,

@@ -1032,10 +1032,6 @@ tcp_default_fb_init(struct tcpcb *tp, void **ptr)
 	/* We don't use the pointer */
 	*ptr = NULL;
 
-	KASSERT(tp->t_state < TCPS_TIME_WAIT,
-	    ("%s: connection %p in unexpected state %d", __func__, tp,
-	    tp->t_state));
-
 	/* Make sure we get no interesting mbuf queuing behavior */
 	/* All mbuf queue/ack compress flags should be off */
 	tcp_lro_features_off(tp);
@@ -1455,6 +1451,7 @@ tcp_vnet_init(void *arg __unused)
 	VNET_PCPUSTAT_ALLOC(tcpstat, M_WAITOK);
 
 	V_tcp_msl = TCPTV_MSL;
+	V_tcp_msl_local = TCPTV_MSL_LOCAL;
 	arc4rand(&V_ts_offset_secret, sizeof(V_ts_offset_secret), 0);
 }
 VNET_SYSINIT(tcp_vnet_init, SI_SUB_PROTO_DOMAIN, SI_ORDER_FOURTH,
@@ -1474,11 +1471,7 @@ tcp_init(void *arg __unused)
 	tcp_keepintvl = TCPTV_KEEPINTVL;
 	tcp_maxpersistidle = TCPTV_KEEP_IDLE;
 	tcp_rexmit_initial = TCPTV_RTOBASE;
-	if (tcp_rexmit_initial < 1)
-		tcp_rexmit_initial = 1;
 	tcp_rexmit_min = TCPTV_MIN;
-	if (tcp_rexmit_min < 1)
-		tcp_rexmit_min = 1;
 	tcp_rexmit_max = TCPTV_REXMTMAX;
 	tcp_persmin = TCPTV_PERSMIN;
 	tcp_persmax = TCPTV_PERSMAX;
@@ -2669,8 +2662,13 @@ SYSCTL_PROC(_net_inet_tcp, TCPCTL_PCBLIST, pcblist,
 #define SND_TAG_STATUS_MAXLEN	128
 
 #ifdef KERN_TLS
+
+static struct sx ktlslist_lock;
+SX_SYSINIT(ktlslistlock, &ktlslist_lock, "ktlslist");
+static uint64_t ktls_glob_gen = 1;
+
 static int
-tcp_ktlslist(SYSCTL_HANDLER_ARGS, bool export_keys)
+tcp_ktlslist_locked(SYSCTL_HANDLER_ARGS, bool export_keys)
 {
 	struct xinpgen xig;
 	struct inpcb *inp;
@@ -2684,6 +2682,7 @@ tcp_ktlslist(SYSCTL_HANDLER_ARGS, bool export_keys)
 	int error;
 	bool ek, p;
 
+	sx_assert(&ktlslist_lock, SA_XLOCKED);
 	if (req->newptr != NULL)
 		return (EPERM);
 
@@ -2692,7 +2691,7 @@ tcp_ktlslist(SYSCTL_HANDLER_ARGS, bool export_keys)
 	ipi_gencnt = V_tcbinfo.ipi_gencnt;
 	bzero(&xig, sizeof(xig));
 	xig.xig_len = sizeof(xig);
-	xig.xig_gen = atomic_load_acq_64(&ktls_glob_gen);
+	xig.xig_gen = ktls_glob_gen++;
 	xig.xig_sogen = so_gencnt;
 
 	struct inpcb_iterator inpi = INP_ALL_ITERATOR(&V_tcbinfo,
@@ -2708,7 +2707,8 @@ tcp_ktlslist(SYSCTL_HANDLER_ARGS, bool export_keys)
 			ek = export_keys && cr_canexport_ktlskeys(
 			    req->td, inp);
 			ksr = so->so_rcv.sb_tls_info;
-			if (ktls_session_genvis(ksr, xig.xig_gen)) {
+			if (ksr != NULL) {
+				ksr->gen = xig.xig_gen;
 				p = true;
 				if (ek) {
 					sz = SIZE_T_MAX;
@@ -2726,7 +2726,8 @@ tcp_ktlslist(SYSCTL_HANDLER_ARGS, bool export_keys)
 				}
 			}
 			kss = so->so_snd.sb_tls_info;
-			if (ktls_session_genvis(kss, xig.xig_gen)) {
+			if (kss != NULL) {
+				kss->gen = xig.xig_gen;
 				p = true;
 				if (ek) {
 					sz = SIZE_T_MAX;
@@ -2783,11 +2784,11 @@ tcp_ktlslist(SYSCTL_HANDLER_ARGS, bool export_keys)
 		ksr = so->so_rcv.sb_tls_info;
 		kss = so->so_snd.sb_tls_info;
 		xktls = (struct xktls_session *)buf;
-		if (ktls_session_genvis(ksr, xig.xig_gen)) {
+		if (ksr != NULL && ksr->gen == xig.xig_gen) {
 			p = true;
 			ktls_session_to_xktls_onedir(ksr, ek, &xktls->rcv);
 		}
-		if (ktls_session_genvis(kss, xig.xig_gen)) {
+		if (kss != NULL && kss->gen == xig.xig_gen) {
 			p = true;
 			ktls_session_to_xktls_onedir(kss, ek, &xktls->snd);
 		}
@@ -2798,7 +2799,7 @@ tcp_ktlslist(SYSCTL_HANDLER_ARGS, bool export_keys)
 		xktls->so_pcb = (kvaddr_t)inp;
 		memcpy(&xktls->coninf, &inp->inp_inc, sizeof(xktls->coninf));
 		len = sizeof(*xktls);
-		if (ktls_session_genvis(ksr, xig.xig_gen)) {
+		if (ksr != NULL && ksr->gen == xig.xig_gen) {
 			if (ek) {
 				sz = buflen - len;
 				ktls_session_copy_keys(ksr, buf + len, &sz);
@@ -2815,7 +2816,7 @@ tcp_ktlslist(SYSCTL_HANDLER_ARGS, bool export_keys)
 				len += sz;
 			}
 		}
-		if (ktls_session_genvis(kss, xig.xig_gen)) {
+		if (kss != NULL && kss->gen == xig.xig_gen) {
 			if (ek) {
 				sz = buflen - len;
 				ktls_session_copy_keys(kss, buf + len, &sz);
@@ -2845,8 +2846,6 @@ tcp_ktlslist(SYSCTL_HANDLER_ARGS, bool export_keys)
 	}
 
 	if (error == 0) {
-		atomic_thread_fence_rel();
-		xig.xig_gen = atomic_load_64(&ktls_glob_gen);
 		xig.xig_sogen = so_gencnt;
 		xig.xig_count = cnt;
 		error = SYSCTL_OUT(req, &xig, sizeof(xig));
@@ -2857,15 +2856,26 @@ tcp_ktlslist(SYSCTL_HANDLER_ARGS, bool export_keys)
 }
 
 static int
+tcp_ktlslist1(SYSCTL_HANDLER_ARGS, bool export_keys)
+{
+	int res;
+
+	sx_xlock(&ktlslist_lock);
+	res = tcp_ktlslist_locked(oidp, arg1, arg2, req, export_keys);
+	sx_xunlock(&ktlslist_lock);
+	return (res);
+}
+	
+static int
 tcp_ktlslist_nokeys(SYSCTL_HANDLER_ARGS)
 {
-	return (tcp_ktlslist(oidp, arg1, arg2, req, false));
+	return (tcp_ktlslist1(oidp, arg1, arg2, req, false));
 }
 
 static int
 tcp_ktlslist_wkeys(SYSCTL_HANDLER_ARGS)
 {
-	return (tcp_ktlslist(oidp, arg1, arg2, req, true));
+	return (tcp_ktlslist1(oidp, arg1, arg2, req, true));
 }
 
 SYSCTL_PROC(_net_inet_tcp, TCPCTL_KTLSLIST, ktlslist,

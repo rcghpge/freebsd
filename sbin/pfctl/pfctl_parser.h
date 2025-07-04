@@ -258,6 +258,7 @@ struct pf_opt_tbl {
 	char			 pt_name[PF_TABLE_NAME_SIZE];
 	int			 pt_rulecount;
 	int			 pt_generated;
+	uint32_t		 pt_refcnt;
 	struct node_tinithead	 pt_nodes;
 	struct pfr_buffer	*pt_buf;
 };
@@ -360,9 +361,9 @@ struct pf_timeout {
 
 extern const struct pf_timeout pf_timeouts[];
 
-void			 set_ipmask(struct node_host *, u_int8_t);
+void			 set_ipmask(struct node_host *, int);
 int			 check_netmask(struct node_host *, sa_family_t);
-int			 unmask(struct pf_addr *, sa_family_t);
+int			 unmask(struct pf_addr *);
 struct node_host	*gen_dynnode(struct node_host *, sa_family_t);
 void			 ifa_load(void);
 unsigned int		 ifa_nametoindex(const char *);
