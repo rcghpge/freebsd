@@ -17,7 +17,7 @@ jobs:
     - name: Checkout fork
       uses: actions/checkout@v4
       with:
-        fetch-depth: 0  # Important: fetch all history so we can merge
+        fetch-depth: 0  # Important: fetch all history for merge
         persist-credentials: false
 
     - name: Add upstream remote
