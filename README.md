@@ -1,5 +1,6 @@
 FreeBSD Source
 ==============
+[![Bandit](https://github.com/rcghpge/freebsd/actions/workflows/bandit.yml/badge.svg)](https://github.com/rcghpge/freebsd/actions/workflows/bandit.yml)
 
 This repository tracks the FreeBSD source tree and serves as a base for potential future contributions to the broader FreeBSD community.
 
