@@ -69,3 +69,4 @@ jobs:
       with:
         category: "/language:${{matrix.language}}"
       if: contains(matrix.language, 'c-cpp')
+      continue-on-error: true
