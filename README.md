@@ -4,7 +4,7 @@ FreeBSD Source Tree
 [![Bandit](https://github.com/rcghpge/freebsd/actions/workflows/bandit.yml/badge.svg)](https://github.com/rcghpge/freebsd/actions/workflows/bandit.yml)[![CodeQL](https://github.com/rcghpge/freebsd/actions/workflows/github-code-scanning/codeql/badge.svg)](https://github.com/rcghpge/freebsd/actions/workflows/github-code-scanning/codeql)[![pages-build-deployment](https://github.com/rcghpge/freebsd/actions/workflows/pages/pages-build-deployment/badge.svg)](https://github.com/rcghpge/freebsd/actions/workflows/pages/pages-build-deployment)
 [![Dependabot Updates](https://github.com/rcghpge/freebsd/actions/workflows/dependabot/dependabot-updates/badge.svg)](https://github.com/rcghpge/freebsd/actions/workflows/dependabot/dependabot-updates)
 
-This repository tracks the FreeBSD source tree and serves as a base for forstering base system research and development im the OSS community and FreeBSD community.
+This repository tracks the official FreeBSD source tree and serves as a base for fostering base system research and development im the OSS community and FreeBSD community.
 
 FreeBSD is a modern operating system used to power servers, desktops, and embedded platforms worldwide. Developed by a dedicated community for over thirty years, it is recognized for its advanced networking, security, and storage capabilities.
 
