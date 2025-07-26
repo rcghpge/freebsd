@@ -2253,10 +2253,10 @@ kern_accessat(struct thread *td, int fd, const char *path,
 	cred = td->td_ucred;
 	if ((flag & AT_EACCESS) == 0 &&
 	    ((cred->cr_uid != cred->cr_ruid ||
-	    cred->cr_rgid != cred->cr_groups[0]))) {
+	    cred->cr_rgid != cred->cr_gid))) {
 		usecred = crdup(cred);
 		usecred->cr_uid = cred->cr_ruid;
-		usecred->cr_groups[0] = cred->cr_rgid;
+		usecred->cr_gid = cred->cr_rgid;
 		td->td_ucred = usecred;
 	} else
 		usecred = cred;
@@ -4314,10 +4314,6 @@ kern_getdirentries(struct thread *td, int fd, char *buf, size_t count,
 	vp = fp->f_vnode;
 	foffset = foffset_lock(fp, 0);
 unionread:
-	if (vp->v_type != VDIR) {
-		error = EINVAL;
-		goto fail;
-	}
 	if (__predict_false((vp->v_vflag & VV_UNLINKED) != 0)) {
 		error = ENOENT;
 		goto fail;
@@ -4330,6 +4326,19 @@ unionread:
 	auio.uio_segflg = bufseg;
 	auio.uio_td = td;
 	vn_lock(vp, LK_SHARED | LK_RETRY);
+	/*
+	 * We want to return ENOTDIR for anything that is not VDIR, but
+	 * not for VBAD, and we can't check for VBAD while the vnode is
+	 * unlocked.
+	 */
+	if (vp->v_type != VDIR) {
+		if (vp->v_type == VBAD)
+			error = EBADF;
+		else
+			error = ENOTDIR;
+		VOP_UNLOCK(vp);
+		goto fail;
+	}
 	AUDIT_ARG_VNODE1(vp);
 	loff = auio.uio_offset = foffset;
 #ifdef MAC
