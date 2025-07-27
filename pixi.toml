@@ -9,6 +9,7 @@ version = "0.1.0"
 
 [dependencies]
 pip-audit = ">=2.9.0,<3"
+python = ">=3.13.5,<3.14"
 
 [target.linux-64.dependencies]
 pip = ">=25.1.1,<26"
