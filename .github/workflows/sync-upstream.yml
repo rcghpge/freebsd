@@ -1,4 +1,4 @@
-name: Sync from upstream
+name: FreeBSD OS CI/CD
 
 on:
   schedule:
