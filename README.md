@@ -1,7 +1,7 @@
 FreeBSD Source Tree
 ==============
-[![Cross-build Kernel](https://github.com/rcghpge/freebsd/actions/workflows/cross-bootstrap-tools.yml/badge.svg)](https://github.com/rcghpge/freebsd/actions/workflows/cross-bootstrap-tools.yml)
-[![Bandit](https://github.com/rcghpge/freebsd/actions/workflows/bandit.yml/badge.svg)](https://github.com/rcghpge/freebsd/actions/workflows/bandit.yml)[![CodeQL](https://github.com/rcghpge/freebsd/actions/workflows/github-code-scanning/codeql/badge.svg)](https://github.com/rcghpge/freebsd/actions/workflows/github-code-scanning/codeql)[![pages-build-deployment](https://github.com/rcghpge/freebsd/actions/workflows/pages/pages-build-deployment/badge.svg)](https://github.com/rcghpge/freebsd/actions/workflows/pages/pages-build-deployment)
+[![FreeBSD Hub](https://github.com/rcghpge/freebsd/actions/workflows/freebsdhub.yml/badge.svg)](https://github.com/rcghpge/freebsd/actions/workflows/freebsdhub.yml)[![Cross-build Kernel](https://github.com/rcghpge/freebsd/actions/workflows/cross-bootstrap-tools.yml/badge.svg)](https://github.com/rcghpge/freebsd/actions/workflows/cross-bootstrap-tools.yml)
+[![Bandit](https://github.com/rcghpge/freebsd/actions/workflows/bandit.yml/badge.svg)](https://github.com/rcghpge/freebsd/actions/workflows/bandit.yml)[![CodeQL](https://github.com/rcghpge/freebsd/actions/workflows/github-code-scanning/codeql/badge.svg)](https://github.com/rcghpge/freebsd/actions/workflows/github-code-scanning/codeql)
 [![Dependabot Updates](https://github.com/rcghpge/freebsd/actions/workflows/dependabot/dependabot-updates/badge.svg)](https://github.com/rcghpge/freebsd/actions/workflows/dependabot/dependabot-updates)
 
 This repository tracks the official FreeBSD source tree and serves as a base for fostering base system research and development in the OSS and FreeBSD community.
