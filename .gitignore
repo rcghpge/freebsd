@@ -29,3 +29,59 @@ tags
 .clangd
 .ccls-cache
 sys/*/compile
+
+# Python
+__mojocache__/
+__pycache__/
+*.py[cod]
+*.egg
+*.egg-info
+*.egg-info/
+dist/
+build/
+*.joblib
+*.so
+*.pyd
+
+# Virtual environments
+.cache/
+.venv/
+venv/
+env/
+.pixi/
+.kaggle-env/
+.kaggle/
+.bak
+.pixi
+.env
+
+# Jupyter
+.ipynb_checkpoints/
+
+
+# Node / frontend
+node_modules/
+npm-debug.log
+yarn-debug.log
+yarn-error.log
+
+
+# VSCode, PyCharm
+.vscode/
+.idea/
+
+# GitHub
+*~
+*.h
+*.c
+*.cpp
+*.rs
+*.rlib
+*.cu
+*.cuh
+*.pt
+*.pth
+*.pb
+.cache
+pixi.lock
+pixi.toml
