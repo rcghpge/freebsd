@@ -3,3 +3,6 @@
 *.cpp  diff=cpp
 *.hpp  diff=cpp
 *.py   diff=python
+
+# GitHub Settings (these settings apply only to GitHub not FreeBSD OS base system)
+*.cpp linguist-detectable=false
