@@ -1,6 +1,6 @@
 [workspace]
 authors = ["Robert Cocker <rcocker87@gmail.com>"]
-channels = ["conda-forge"]
+channels = ["conda-forge", "https://conda.modular.com/max-nightly"]
 name = "freebsd"
 platforms = ["linux-64"]
 version = "0.1.0"
@@ -10,6 +10,9 @@ version = "0.1.0"
 [dependencies]
 pip-audit = ">=2.9.0,<3"
 python = ">=3.13.5,<3.14"
+mojo = ">=25.6.0.dev2025081205,<26"
+mojo-compiler = ">=25.6.0.dev2025081205,<26"
+max = ">=25.6.0.dev2025081205,<26"
 
 [target.linux-64.dependencies]
 pip = ">=25.1.1,<26"
