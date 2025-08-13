@@ -508,6 +508,7 @@ mixed_af_head()
 {
        atf_set descr 'Test mixed address family source tracking'
        atf_set require.user root
+       atf_set require.progs python3 scapy
 }
 
 mixed_af_body()
@@ -522,6 +523,8 @@ mixed_af_body()
 	pft_set_rules router \
 		"set reassemble yes" \
 		"set state-policy if-bound" \
+		"block" \
+		"pass inet6 proto icmp6 icmp6-type { neighbrsol, neighbradv }" \
 		"pass in on ${epair_tester}b \
 			route-to { (${epair_server1}a ${net_server1_4_host_server}) \
 		} sticky-address \

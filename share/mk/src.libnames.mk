@@ -78,6 +78,7 @@ _INTERNALLIBS=	\
 		smdb \
 		smutil \
 		telnet \
+		util++ \
 		vers \
 		wpaap \
 		wpacommon \
@@ -471,7 +472,11 @@ _DP_ncursesw=	tinfow
 _DP_formw=	ncursesw
 _DP_nvpair=	spl
 _DP_panelw=	ncursesw
+.if ${MK_MITKRB5} == "no"
 _DP_rpcsec_gss=	gssapi
+.else
+_DP_rpcsec_gss=	gssapi_krb5
+.endif
 _DP_smb=	kiconv
 _DP_ulog=	md
 _DP_fifolog=	z
@@ -693,6 +698,9 @@ LIBPKGECC?=	${LIBPKGECCDIR}/libpkgecc${PIE_SUFFIX}.a
 
 LIBPMCSTATDIR=	${_LIB_OBJTOP}/lib/libpmcstat
 LIBPMCSTAT?=	${LIBPMCSTATDIR}/libpmcstat${PIE_SUFFIX}.a
+
+LIBUTIL++DIR=	${_LIB_OBJTOP}/lib/libutil++
+LIBUTIL++?=	${LIBUTIL++DIR}/libutil++${PIE_SUFFIX}.a
 
 LIBWPAAPDIR=	${_LIB_OBJTOP}/usr.sbin/wpa/src/ap
 LIBWPAAP?=	${LIBWPAAPDIR}/libwpaap${PIE_SUFFIX}.a
