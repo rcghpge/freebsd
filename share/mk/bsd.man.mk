@@ -114,7 +114,7 @@ ${__group}TAGS+=	package=${${__group}PACKAGE:U${PACKAGE:Uutilities}}-man
 .endif
 .endif
 
-${__group}TAG_ARGS=	-T ${${__group}TAGS:[*]:S/ /,/g}
+${__group}TAG_ARGS=	-T ${${__group}TAGS:ts,:[*]}
 .endif	# defined(NO_ROOT)
 
 ${__group}INSTALL?=	${INSTALL} ${${__group}TAG_ARGS} \
@@ -137,13 +137,15 @@ ZEXT=
 CLEANFILES+=	${${__group}:T:S/$/${FILTEXTENSION}/g}
 CLEANFILES+=	${${__group}:T:S/$/${CATEXT}${FILTEXTENSION}/g}
 .for __page in ${${__group}}
-.for __target in ${__page:T:S/$/${FILTEXTENSION}/g}
+# Escape colons in target names to support manual pages whose
+# filenames contain colons.
+.for __target in ${__page:T:S/:/\:/g:S/$/${FILTEXTENSION}/g}
 all-man: ${__target}
 ${__target}: ${__page}
 	${MANFILTER} < ${.ALLSRC} > ${.TARGET}
 .endfor
 .if defined(MANBUILDCAT) && !empty(MANBUILDCAT)
-.for __target in ${__page:T:S/$/${CATEXT}${FILTEXTENSION}/g}
+.for __target in ${__page:T:S/:/\:/g:S/$/${CATEXT}${FILTEXTENSION}/g}
 all-man: ${__target}
 ${__target}: ${__page}
 	${MANFILTER} < ${.ALLSRC} | ${MANDOC_CMD} > ${.TARGET}
@@ -156,7 +158,7 @@ ${__target}: ${__page}
 CLEANFILES+=	${${__group}:T:S/$/${CATEXT}/g}
 .if defined(MANBUILDCAT) && !empty(MANBUILDCAT)
 .for __page in ${${__group}}
-.for __target in ${__page:T:S/$/${CATEXT}/g}
+.for __target in ${__page:T:S/:/\:/g:S/$/${CATEXT}/g}
 all-man: ${__target}
 ${__target}: ${__page}
 	${MANDOC_CMD} ${.ALLSRC} > ${.TARGET}
@@ -176,7 +178,7 @@ ZEXT=		${MCOMPRESS_EXT}
 CLEANFILES+=	${${__group}:T:S/$/${MCOMPRESS_EXT}/g}
 CLEANFILES+=	${${__group}:T:S/$/${CATEXT}${MCOMPRESS_EXT}/g}
 .for __page in ${${__group}}
-.for __target in ${__page:T:S/$/${MCOMPRESS_EXT}/}
+.for __target in ${__page:T:S/:/\:/g:S/$/${MCOMPRESS_EXT}/}
 all-man: ${__target}
 ${__target}: ${__page}
 .if defined(MANFILTER)
@@ -186,7 +188,7 @@ ${__target}: ${__page}
 .endif
 .endfor
 .if defined(MANBUILDCAT) && !empty(MANBUILDCAT)
-.for __target in ${__page:T:S/$/${CATEXT}${MCOMPRESS_EXT}/}
+.for __target in ${__page:T:S/:/\:/g:S/$/${CATEXT}${MCOMPRESS_EXT}/}
 all-man: ${__target}
 ${__target}: ${__page}
 .if defined(MANFILTER)
@@ -286,11 +288,11 @@ manlinksinstall-${__group}:
 .endif
 .endfor
 
-manlint:
+manlint: .PHONY checkmanlinks
 .if defined(${__group}) && !empty(${__group})
 .for __page in ${${__group}}
-manlint: ${__page}lint
-${__page}lint: ${__page}
+manlint: ${__page:S/:/\:/g}lint
+${__page:S/:/\:/g}lint: .PHONY ${__page}
 .if defined(MANFILTER)
 	${MANFILTER} < ${.ALLSRC} | ${MANDOC_CMD} -Tlint
 .else
@@ -298,5 +300,19 @@ ${__page}lint: ${__page}
 .endif
 .endfor
 .endif
+
+checkmanlinks: .PHONY
+.if defined(${__group}LINKS)
+checkmanlinks: checkmanlinks-${__group}
+checkmanlinks-${__group}: .PHONY
+.for __page __link in ${${__group}LINKS}
+checkmanlinks-${__group}: checkmanlinks-${__group}-${__link}
+checkmanlinks-${__group}-${__link}: .PHONY ${__page}
+	@if ! egrep -q "^(\.\\\\\" )?\.Nm ${__link:R}( ,)?$$" ${.ALLSRC}; then \
+		echo "${__group}LINKS: '.Nm ${__link:R}' not found in ${__page}"; \
+		exit 1; \
+	fi >&2
+.endfor # __page __link in ${${__group}LINKS}
+.endif # defined(${__group}LINKS)
 
 .endfor	# __group in ${MANGROUPS}
