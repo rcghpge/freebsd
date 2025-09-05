@@ -1667,7 +1667,6 @@ pf_state_key_addr_setup(struct pf_pdesc *pd,
 #ifdef INET6
 	struct nd_neighbor_solicit nd;
 	struct pf_addr *target;
-	u_short action, reason;
 
 	if (pd->af == AF_INET || pd->proto != IPPROTO_ICMPV6)
 		goto copy;
@@ -1676,7 +1675,8 @@ pf_state_key_addr_setup(struct pf_pdesc *pd,
 	case ND_NEIGHBOR_SOLICIT:
 		if (multi)
 			return (-1);
-		if (!pf_pull_hdr(pd->m, pd->off, &nd, sizeof(nd), &action, &reason, pd->af))
+		if (!pf_pull_hdr(pd->m, pd->off, &nd, sizeof(nd), NULL,
+		    NULL, pd->af))
 			return (-1);
 		target = (struct pf_addr *)&nd.nd_ns_target;
 		daddr = target;
@@ -1684,7 +1684,8 @@ pf_state_key_addr_setup(struct pf_pdesc *pd,
 	case ND_NEIGHBOR_ADVERT:
 		if (multi)
 			return (-1);
-		if (!pf_pull_hdr(pd->m, pd->off, &nd, sizeof(nd), &action, &reason, pd->af))
+		if (!pf_pull_hdr(pd->m, pd->off, &nd, sizeof(nd), NULL,
+		    NULL, pd->af))
 			return (-1);
 		target = (struct pf_addr *)&nd.nd_ns_target;
 		saddr = target;
@@ -3632,6 +3633,18 @@ pf_translate_af(struct pf_pdesc *pd)
 		pd->src = (struct pf_addr *)&ip4->ip_src;
 		pd->dst = (struct pf_addr *)&ip4->ip_dst;
 		pd->off = sizeof(struct ip);
+		if (pd->m->m_pkthdr.csum_flags & CSUM_TCP_IPV6) {
+			pd->m->m_pkthdr.csum_flags &= ~CSUM_TCP_IPV6;
+			pd->m->m_pkthdr.csum_flags |= CSUM_TCP;
+		}
+		if (pd->m->m_pkthdr.csum_flags & CSUM_UDP_IPV6) {
+			pd->m->m_pkthdr.csum_flags &= ~CSUM_UDP_IPV6;
+			pd->m->m_pkthdr.csum_flags |= CSUM_UDP;
+		}
+		if (pd->m->m_pkthdr.csum_flags & CSUM_SCTP_IPV6) {
+			pd->m->m_pkthdr.csum_flags &= ~CSUM_SCTP_IPV6;
+			pd->m->m_pkthdr.csum_flags |= CSUM_SCTP;
+		}
 		break;
 	case AF_INET6:
 		ip6 = mtod(pd->m, struct ip6_hdr *);
@@ -3649,6 +3662,18 @@ pf_translate_af(struct pf_pdesc *pd)
 		pd->src = (struct pf_addr *)&ip6->ip6_src;
 		pd->dst = (struct pf_addr *)&ip6->ip6_dst;
 		pd->off = sizeof(struct ip6_hdr);
+		if (pd->m->m_pkthdr.csum_flags & CSUM_TCP) {
+			pd->m->m_pkthdr.csum_flags &= ~CSUM_TCP;
+			pd->m->m_pkthdr.csum_flags |= CSUM_TCP_IPV6;
+		}
+		if (pd->m->m_pkthdr.csum_flags & CSUM_UDP) {
+			pd->m->m_pkthdr.csum_flags &= ~CSUM_UDP;
+			pd->m->m_pkthdr.csum_flags |= CSUM_UDP_IPV6;
+		}
+		if (pd->m->m_pkthdr.csum_flags & CSUM_SCTP) {
+			pd->m->m_pkthdr.csum_flags &= ~CSUM_SCTP;
+			pd->m->m_pkthdr.csum_flags |= CSUM_SCTP_IPV6;
+		}
 
 		/*
 		 * If we're dealing with a reassembled packet we need to adjust
@@ -8047,6 +8072,7 @@ pf_test_state_icmp(struct pf_kstate **state, struct pf_pdesc *pd,
 				return (PF_DROP);
 
 			pd2.tot_len = ntohs(h2.ip_len);
+			pd2.ttl = h2.ip_ttl;
 			pd2.src = (struct pf_addr *)&h2.ip_src;
 			pd2.dst = (struct pf_addr *)&h2.ip_dst;
 			pd2.ip_sum = &h2.ip_sum;
@@ -8069,6 +8095,7 @@ pf_test_state_icmp(struct pf_kstate **state, struct pf_pdesc *pd,
 
 			pd2.tot_len = ntohs(h2_6.ip6_plen) +
 			    sizeof(struct ip6_hdr);
+			pd2.ttl = h2_6.ip6_hlim;
 			pd2.src = (struct pf_addr *)&h2_6.ip6_src;
 			pd2.dst = (struct pf_addr *)&h2_6.ip6_dst;
 			pd2.ip_sum = NULL;
@@ -9997,9 +10024,12 @@ pf_walk_header(struct pf_pdesc *pd, struct ip *h, u_short *reason)
 	pd->proto = h->ip_p;
 	/* IGMP packets have router alert options, allow them */
 	if (pd->proto == IPPROTO_IGMP) {
-		/* According to RFC 1112 ttl must be set to 1. */
-		if ((h->ip_ttl != 1) ||
-		    !IN_MULTICAST(ntohl(h->ip_dst.s_addr))) {
+		/*
+		 * According to RFC 1112 ttl must be set to 1 in all IGMP
+		 * packets sent to 224.0.0.1
+		 */
+		if ((h->ip_ttl != 1) &&
+		    (h->ip_dst.s_addr == INADDR_ALLHOSTS_GROUP)) {
 			DPFPRINTF(PF_DEBUG_MISC, "Invalid IGMP");
 			REASON_SET(reason, PFRES_IPOPTIONS);
 			return (PF_DROP);
