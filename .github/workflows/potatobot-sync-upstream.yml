@@ -1,4 +1,4 @@
-name: Sync from upstream
+name: Potatobot
 
 on:
   schedule:
@@ -11,7 +11,7 @@ permissions:
   contents: write
 
 jobs:
-  sync:
+  sync-source-tree:
     runs-on: ubuntu-latest
 
     steps:
@@ -28,10 +28,14 @@ jobs:
 
     - name: Merge upstream changes
       run: |
-        git config user.name "github-actions[bot]"
-        git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+        # new github actions bot wip
+        git config user.name "potatobot[bot]"
+        git config user.email "potatobot@users.noreply.github.com"
         git merge upstream/main || echo "No upstream changes to merge"
 
     - name: Push updates to fork
+      env:
+          PUSH_FORK: ${{ secrets.PAT_REPO }}
       run: |
-        git push origin main
+          git remote set-url origin "https://${PUSH_FORK}@github.com/rcghpge/freebsd.git"
+          git push origin main
