@@ -75,14 +75,22 @@ VOLUME_LABEL=	${REVISION:C/[.-]/_/g}_${BRANCH:C/[.-]/_/g}_${TARGET_ARCH}
 .endfor
 .endif
 
+.if !defined(NOPKGBASE) || empty(NOPKGBASE)
+PKGBASE_REPO_DIR= pkgbase-repo-dir
+WSTAGEDIR!=	${IMAKE} -f Makefile.inc1 -C ${WORLDDIR} -V WSTAGEDIR
+PKG_ABI_FILE=	${WSTAGEDIR}/usr/bin/uname
+PKG_ABI=	$$(${PKG_CMD} -o ABI_FILE=${PKG_ABI_FILE} config ABI)
+.endif
+
 .if ${.MAKE.OS} == "FreeBSD"
 # For installing packages into the release media.
 PKG_ENV+=	INSTALL_AS_USER=yes
 PKG_ENV+=	ASSUME_ALWAYS_YES=yes
 PKG_ARGS+=	-o METALOG=METALOG
+PKG_ARGS+=	-o ABI=${PKG_ABI}
 PKG_ARGS+=	-r ${.TARGET}
 PKG_REPO_ARGS=	-o REPOS_DIR=${.CURDIR}/pkg_repos
-PKGBASE_REPO_ARGS=-o REPOS_DIR=${.OBJDIR}/pkgbase-repo-conf
+PKGBASE_REPO_ARGS=-o REPOS_DIR=${.OBJDIR}/pkgbase-repo-dir
 # Pass -f to make sure pkg writes to the METALOG even if the package
 # is already installed from a previous build
 PKG_INSTALL=	env ${PKG_ENV} ${PKG_CMD} ${PKG_ARGS} ${PKG_REPO_ARGS} install -f
@@ -134,7 +142,7 @@ CLEANFILES+=	${I}.xz
 .if defined(WITH_DVD) && !empty(WITH_DVD)
 CLEANFILES+=	pkg-stage
 .endif
-CLEANDIRS=	dist pkgdb pkgbase-repo pkgbase-repo-dir ftp disc1 disc1-disc1 disc1-memstick bootonly bootonly-bootonly bootonly-memstick dvd
+CLEANDIRS=	dist pkgdb-dvd pkgdb-disc1 pkgbase-repo pkgbase-repo-dir ftp disc1 disc1-disc1 disc1-memstick bootonly bootonly-bootonly bootonly-memstick dvd
 beforeclean:
 	chflags -R noschg .
 .include <bsd.obj.mk>
@@ -193,12 +201,10 @@ disc1: packagesystem
 bootonly: packagesystem
 dvd: packagesystem
 .endif
-
 .if !defined(NOPKGBASE) || empty(NOPKGBASE)
-PKGBASE_REPO_DIR= pkgbase-repo-dir
-WSTAGEDIR!=	${IMAKE} -f Makefile.inc1 -C ${WORLDDIR} -V WSTAGEDIR
-PKG_ABI_FILE=	${WSTAGEDIR}/usr/bin/uname
-PKG_ABI=	$$(${PKG_CMD} -o ABI_FILE=${PKG_ABI_FILE} config ABI)
+disc1: pkgbase-repo-dir
+bootonly: pkgbase-repo-dir
+dvd: pkgbase-repo-dir
 .endif
 
 pkgbase-repo:
@@ -213,7 +219,7 @@ pkgbase-repo-dir: pkgbase-repo
 	    ${.OBJDIR}/pkgbase-repo/${PKG_ABI}/latest \
 	    > pkgbase-repo-dir/FreeBSD-base.conf
 
-disc1: ${PKGBASE_REPO_DIR}
+disc1:
 # Install system
 	mkdir -p ${.TARGET}
 	( cd ${WORLDDIR} && ${IMAKE} installworld installkernel distribution \
@@ -229,7 +235,7 @@ disc1: ${PKGBASE_REPO_DIR}
 	${.CURDIR}/scripts/pkgbase-stage.lua disc \
 	    ${.OBJDIR}/pkgbase-repo-dir \
 	    ${.TARGET}/usr/freebsd-packages/offline \
-	    "${_ALL_libcompats}" ${PKG_ABI}
+	    "${_ALL_libcompats}" ${PKG_ABI} ${.OBJDIR}/pkgdb-disc1
 	cp ${.CURDIR}/scripts/FreeBSD-base-offline.conf \
 		${.TARGET}/usr/freebsd-packages/repos/
 	mtree -c -p ${.TARGET}/usr/freebsd-packages | \
@@ -297,7 +303,12 @@ bootonly:
 	echo "./usr/freebsd-dist/MANIFEST type=file uname=root gname=wheel mode=0644" >> ${.TARGET}/METALOG
 .endif
 .if ${.MAKE.OS} == "FreeBSD" && (!defined(NOPKG) || empty(NOPKG))
-	${PKG_INSTALL} pkg || true
+.if !defined(NOPKGBASE) || empty(NOPKGBASE)
+	${PKGBASE_INSTALL} pkg
+	${PKGBASE_CLEAN}
+.else
+	${PKG_INSTALL} pkg
+.endif
 	${PKG_INSTALL} wifi-firmware-iwlwifi-kmod wifi-firmware-rtw88-kmod || true
 	${PKG_CLEAN} || true
 .endif
@@ -317,7 +328,7 @@ bootonly:
 	echo "./boot/loader.conf type=file uname=root gname=wheel mode=0644" >> ${.TARGET}/METALOG
 	echo "./etc/rc.local type=file uname=root gname=wheel mode=0644" >> ${.TARGET}/METALOG
 
-dvd: ${PKGBASE_REPO_DIR}
+dvd:
 # Install system
 	mkdir -p ${.TARGET}
 	( cd ${WORLDDIR} && ${IMAKE} installworld installkernel distribution \
@@ -329,7 +340,7 @@ dvd: ${PKGBASE_REPO_DIR}
 	${.CURDIR}/scripts/pkgbase-stage.lua dvd \
 	    ${.OBJDIR}/pkgbase-repo-dir \
 	    ${.TARGET}/usr/freebsd-packages/offline \
-	    "${_ALL_libcompats}" ${PKG_ABI}
+	    "${_ALL_libcompats}" ${PKG_ABI} ${.OBJDIR}/pkgdb-dvd
 	cp ${.CURDIR}/scripts/FreeBSD-base-offline.conf \
 		${.TARGET}/usr/freebsd-packages/repos/
 	mtree -c -p ${.TARGET}/usr/freebsd-packages | \

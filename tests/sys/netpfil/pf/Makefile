@@ -5,6 +5,7 @@ TESTS_SUBDIRS+=	ioctl
 
 ATF_TESTS_SH+=	altq \
 		anchor \
+		counters \
 		debug \
 		divert-to \
 		dup \
@@ -71,7 +72,7 @@ ATF_TESTS_PYTEST+=	tcp.py
 
 # Allow tests to run in parallel in their own jails
 TEST_METADATA+= execenv="jail"
-TEST_METADATA+= execenv_jail_params="vnet allow.raw_sockets"
+TEST_METADATA+= execenv_jail_params="vnet allow.raw_sockets allow.read_msgbuf"
 
 ${PACKAGE}FILES+=	\
 			bsnmpd.conf \

@@ -215,10 +215,10 @@ CCD=		ccd
 CCDPACKAGE=	ccdconfig
 .endif
 
-.if ${MK_FTP} != "no"
-CONFGROUPS+=	FTPD
-FTPD=		ftpd
-FTPDPACKAGE=	ftpd
+.if ${MK_CUSE} != "no"
+CONFGROUPS+=	VOSS
+VOSS=		virtual_oss
+VOSSPACKAGE=	sound
 .endif
 
 .if ${MK_KERBEROS_SUPPORT} != "no"

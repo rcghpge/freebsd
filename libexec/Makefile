@@ -10,7 +10,6 @@ SUBDIR=	${_atf} \
 	flua \
 	getty \
 	${_hyperv} \
-	kgdb \
 	${_mail.local} \
 	${_makewhatis.local} \
 	${_mknetid} \
@@ -52,10 +51,6 @@ SUBDIR+=	fingerd
 
 .if ${MK_FREEBSD_UPDATE} != "no"
 _phttpget=	phttpget
-.endif
-
-.if ${MK_FTP} != "no"
-SUBDIR+=	ftpd
 .endif
 
 .if ${MK_MAIL} != "no"
