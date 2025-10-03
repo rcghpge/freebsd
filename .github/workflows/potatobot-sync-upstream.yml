@@ -19,7 +19,7 @@ jobs:
       uses: actions/checkout@v4
       with:
         fetch-depth: 0  # Important: fetch all history for merge
-        # persist-credentials: false # GH credentials TODO for upstream sync no PR
+        persist-credentials: false # Potatobot credentials. wip for fork sync. no PR
 
     - name: Set Potatobot permissions 
       run: |
