@@ -2,9 +2,15 @@ name: Potatobot
 
 on:
   schedule:
+    # Freeze weekly source tree sync for wip bot development.
     # Runs at midnight 00:00 UTC every Friday
     # Thursday 6:00 PM CST/7:00 PM CDT
-    - cron: '0 0 * * 5' 
+    # - cron: '0 0 * * 5' 
+
+    # Placemarker cron sync to source tree until Potatobot is built
+    # Runs at midnight 00:00 UTC on the 1st of every month
+    # (6:00 PM CST / 7:00 PM CDT on the last day of the previous month locally)
+    - cron: '0 0 1 * *'
   workflow_dispatch: {}
 
 permissions:
