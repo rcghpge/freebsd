@@ -21,6 +21,13 @@ jobs:
         fetch-depth: 0  # Important: fetch all history for merge
         # persist-credentials: false # GH credentials TODO for upstream sync no PR
 
+    - name: Set Potatobot permissions 
+      run: |
+        # new gh actions bot. wip
+        git config --global --add safe.directory "$GITHUB_WORKSPACE"
+        git config user.name  "potatobot[bot]"
+        git config user.email "potatobot@users.noreply.github.com
+
     - name: Add upstream remote
       run: |
         git remote add upstream https://github.com/freebsd/freebsd-src.git
@@ -28,14 +35,11 @@ jobs:
 
     - name: Merge upstream changes
       run: |
-        # new github actions bot wip
-        git config user.name "potatobot[bot]"
-        git config user.email "potatobot@users.noreply.github.com"
         git merge upstream/main || echo "No upstream changes to merge"
 
     - name: Push updates to fork
       env:
           PUSH_FORK: ${{ secrets.PAT_REPO }}
       run: |
-          git remote set-url origin "https://${PUSH_FORK}@github.com/rcghpge/freebsd.git"
+          git remote set-url origin "https://${{ github.actor }}:${PUSH_FORK}@github.com/${{ github.repository }}.git"
           git push origin main
