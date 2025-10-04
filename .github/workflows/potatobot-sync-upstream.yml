@@ -27,6 +27,8 @@ jobs:
         with:
           app-id: ${{ secrets.POTATOBOT_APP_ID }}
           private-key: ${{ secrets.POTATOBOT_APP_PRIVATE_KEY }}
+          owner: rcghpge
+          repositories: freebsd
 
       - name: Set bot authorship
         run: |
