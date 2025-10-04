@@ -1,7 +1,7 @@
 FreeBSD Source Tree
 ==============
 [![FreeBSD Hub](https://github.com/rcghpge/freebsd/actions/workflows/freebsdhub.yml/badge.svg)](https://github.com/rcghpge/freebsd/actions/workflows/freebsdhub.yml)
-[![Potatobot](https://github.com/rcghpge/freebsd/actions/workflows/potatobot-sync-upstream.yml/badge.svg)](https://github.com/rcghpge/freebsd/actions/workflows/potatobot-sync-upstream.yml)
+[![Potatobot](https://github.com/rcghpge/freebsd/actions/workflows/potatobot.yml/badge.svg)](https://github.com/rcghpge/freebsd/actions/workflows/potatobot.yml)
 [![Dependabot](https://github.com/rcghpge/freebsd/actions/workflows/dependabot/dependabot-updates/badge.svg)](https://github.com/rcghpge/freebsd/actions/workflows/dependabot/dependabot-updates)
 [![CodeQL](https://github.com/rcghpge/freebsd/actions/workflows/github-code-scanning/codeql/badge.svg)](https://github.com/rcghpge/freebsd/actions/workflows/github-code-scanning/codeql)
 [![Cross-build Kernel](https://github.com/rcghpge/freebsd/actions/workflows/cross-bootstrap-tools.yml/badge.svg)](https://github.com/rcghpge/freebsd/actions/workflows/cross-bootstrap-tools.yml)
