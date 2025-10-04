@@ -1,10 +1,11 @@
 FreeBSD Source Tree
 ==============
 [![FreeBSD Hub](https://github.com/rcghpge/freebsd/actions/workflows/freebsdhub.yml/badge.svg)](https://github.com/rcghpge/freebsd/actions/workflows/freebsdhub.yml)
+[![Dependabot](https://github.com/rcghpge/freebsd/actions/workflows/dependabot/dependabot-updates/badge.svg)](https://github.com/rcghpge/freebsd/actions/workflows/dependabot/dependabot-updates)
 [![Potatobot](https://github.com/rcghpge/freebsd/actions/workflows/potatobot-sync-upstream.yml/badge.svg)](https://github.com/rcghpge/freebsd/actions/workflows/potatobot-sync-upstream.yml)
 [![Cross-build Kernel](https://github.com/rcghpge/freebsd/actions/workflows/cross-bootstrap-tools.yml/badge.svg)](https://github.com/rcghpge/freebsd/actions/workflows/cross-bootstrap-tools.yml)
 [![Bandit](https://github.com/rcghpge/freebsd/actions/workflows/bandit.yml/badge.svg)](https://github.com/rcghpge/freebsd/actions/workflows/bandit.yml)[![CodeQL](https://github.com/rcghpge/freebsd/actions/workflows/github-code-scanning/codeql/badge.svg)](https://github.com/rcghpge/freebsd/actions/workflows/github-code-scanning/codeql)
-[![Dependabot Updates](https://github.com/rcghpge/freebsd/actions/workflows/dependabot/dependabot-updates/badge.svg)](https://github.com/rcghpge/freebsd/actions/workflows/dependabot/dependabot-updates)
+
 
 This repository tracks the official [FreeBSD source tree](https://github.com/freebsd/freebsd-src) and serves as a base for fostering base system research and development in the OSS and FreeBSD community.
 
