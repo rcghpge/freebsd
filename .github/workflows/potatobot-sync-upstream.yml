@@ -2,15 +2,9 @@ name: Potatobot
 
 on:
   schedule:
-    # Freeze weekly source tree sync for wip bot development.
     # Runs at midnight 00:00 UTC every Friday
     # Thursday 6:00 PM CST/7:00 PM CDT
-    # - cron: '0 0 * * 5' 
-
-    # Placemarker cron sync to source tree until Potatobot is built
-    # Runs at midnight 00:00 UTC on the 1st of every month
-    # (6:00 PM CST / 7:00 PM CDT on the last day of the previous month locally)
-    - cron: '0 0 1 * *'
+    - cron: '0 0 * * 5' 
   workflow_dispatch: {}
 
 permissions:
@@ -21,32 +15,86 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - name: Checkout fork
-      uses: actions/checkout@v4
-      with:
-        fetch-depth: 0  # Important: fetch all history for merge
-        persist-credentials: false # Potatobot credentials. wip for fork sync. no PR
+      - name: Checkout fork
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
 
-    - name: Set Potatobot permissions 
-      run: |
-        # new gh actions bot. wip
-        set -euo pipefail
-        git config --global --add safe.directory "$GITHUB_WORKSPACE"
-        git config user.name  "potatobot[bot]"
-        git config user.email "potatobot@users.noreply.github.com"
+      - name: Initialize PotatoBot
+        id: app-token
+        uses: actions/create-github-app-token@v1
+        with:
+          app-id: ${{ secrets.POTATOBOT_APP_ID }}
+          private-key: ${{ secrets.POTATOBOT_APP_PRIVATE_KEY }}
 
-    - name: Add upstream remote
-      run: |
-        git remote add upstream https://github.com/freebsd/freebsd-src.git
-        git fetch upstream
+      - name: Set bot authorship
+        run: |
+          set -euo pipefail
+          git config --global --add safe.directory "$GITHUB_WORKSPACE"
+          git config --global user.name  "rglab-potatobot[bot]"
+          git config --global user.email "rglab-potatobot[bot]@users.noreply.github.com"
 
-    - name: Merge upstream changes
-      run: |
-        git merge upstream/main || echo "No upstream changes to merge"
+      - name: Add or update from upstream
+        run: |
+          set -euo pipefail
+          if git remote get-url upstream >/dev/null 2>&1; then
+            git remote set-url upstream https://github.com/freebsd/freebsd-src.git
+          else
+            git remote add upstream https://github.com/freebsd/freebsd-src.git
+          fi
+          git fetch upstream --prune
 
-    - name: Push updates to fork
-      env:
-          PUSH_FORK: ${{ secrets.PAT_REPO }}
-      run: |
-          git remote set-url origin "https://${{ github.actor }}:${PUSH_FORK}@github.com/${{ github.repository }}.git"
-          git push origin main
+      - name: Target branch checks
+        id: branch
+        run: |
+          set -euo pipefail
+          BRANCH="${GITHUB_REF_NAME:-}"
+          if [ -z "$BRANCH" ]; then
+            # Default branch checks from origin/HEAD (e.g., origin/main → main)
+            git remote set-head origin -a >/dev/null 2>&1 || true
+            BRANCH="$(git rev-parse --abbrev-ref origin/HEAD | sed 's|^origin/||')"
+          fi
+          # Fallback if still empty
+          if [ -z "$BRANCH" ]; then
+            BRANCH="$(git symbolic-ref --short HEAD 2>/dev/null || echo main)"
+          fi
+          echo "branch=$BRANCH" >> "$GITHUB_OUTPUT"
+
+      - name: Checkout target branch
+        run: |
+          set -euo pipefail
+          BRANCH="${{ steps.branch.outputs.branch }}"
+          # Ensure branch tracking on origin
+          if git show-ref --verify --quiet "refs/heads/$BRANCH"; then
+            git checkout "$BRANCH"
+          else
+            git checkout -b "$BRANCH" "origin/$BRANCH"
+          fi
+
+      - name: Merge updates from source tree
+        run: |
+          set -euo pipefail
+          if git merge --no-edit --no-ff upstream/main; then
+            echo "Merge completed (or nothing to merge)."
+          else
+            echo "Merge reported conflicts. Aborting to keep repo clean."
+            git merge --abort || true
+            exit 1
+          fi
+
+      - name: Push updates to fork (only on latest updates)
+        env:
+          APP_TOKEN: ${{ steps.app-token.outputs.token }}
+          REPO: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          # Potatobot authentication
+          git remote set-url origin "https://x-access-token:${APP_TOKEN}@github.com/${REPO}.git"
+
+          # Pushes only from source tree latest
+          if [ -n "$(git log origin/$(git rev-parse --abbrev-ref HEAD)..HEAD --oneline)" ]; then
+            git push origin HEAD:$(git rev-parse --abbrev-ref HEAD)
+          else
+            echo "Nothing to push."
+          fi
