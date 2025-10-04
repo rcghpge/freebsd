@@ -1,6 +1,8 @@
 FreeBSD Source Tree
 ==============
-[![FreeBSD Hub](https://github.com/rcghpge/freebsd/actions/workflows/freebsdhub.yml/badge.svg)](https://github.com/rcghpge/freebsd/actions/workflows/freebsdhub.yml)[![Cross-build Kernel](https://github.com/rcghpge/freebsd/actions/workflows/cross-bootstrap-tools.yml/badge.svg)](https://github.com/rcghpge/freebsd/actions/workflows/cross-bootstrap-tools.yml)
+[![FreeBSD Hub](https://github.com/rcghpge/freebsd/actions/workflows/freebsdhub.yml/badge.svg)](https://github.com/rcghpge/freebsd/actions/workflows/freebsdhub.yml)
+[![Potatobot](https://github.com/rcghpge/freebsd/actions/workflows/potatobot-sync-upstream.yml/badge.svg)](https://github.com/rcghpge/freebsd/actions/workflows/potatobot-sync-upstream.yml)
+[![Cross-build Kernel](https://github.com/rcghpge/freebsd/actions/workflows/cross-bootstrap-tools.yml/badge.svg)](https://github.com/rcghpge/freebsd/actions/workflows/cross-bootstrap-tools.yml)
 [![Bandit](https://github.com/rcghpge/freebsd/actions/workflows/bandit.yml/badge.svg)](https://github.com/rcghpge/freebsd/actions/workflows/bandit.yml)[![CodeQL](https://github.com/rcghpge/freebsd/actions/workflows/github-code-scanning/codeql/badge.svg)](https://github.com/rcghpge/freebsd/actions/workflows/github-code-scanning/codeql)
 [![Dependabot Updates](https://github.com/rcghpge/freebsd/actions/workflows/dependabot/dependabot-updates/badge.svg)](https://github.com/rcghpge/freebsd/actions/workflows/dependabot/dependabot-updates)
 
