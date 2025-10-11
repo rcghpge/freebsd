@@ -76,6 +76,6 @@ Official bootable images can be found on the [FreeBSD release page](https://down
 
 This repository tracks FreeBSD development and can be used as a base for future upstream contributions.
 
-For official contribution guidelines and ways to get involved, see the [FreeBSD Community page](https://www.freebsd.org/community/).
+For official contribution guidelines and ways to get involved, see [CONTRIBUTING.md](CONTRIBUTING.md) and the [FreeBSD Community page](https://www.freebsd.org/community/).
 
 ---
