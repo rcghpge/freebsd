@@ -1,6 +1,7 @@
 /*-
- * Copyright (c) 2002, 2003 Sam Leffler, Errno Consulting
- * All rights reserved.
+ * SPDX-License-Identifier: BSD-2-Clause
+ *
+ * Copyright (c) 2025 Juniper Networks, Inc.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -24,40 +25,9 @@
  * SUCH DAMAGE.
  */
 
-#include <sys/types.h>
-#include <sys/sysctl.h>
+#ifndef	_ARM64_KEXEC_H_
+#define	_ARM64_KEXEC_H_
 
-#include <err.h>
-#include <stdio.h>
+#define KEXEC_MD_PAGES(x) 0
 
-#include "../../../sys/dev/hifn/hifn7751var.h"
-
-/*
- * Little program to dump the statistics block for the hifn driver.
- */
-int
-main(int argc, char *argv[])
-{
-	struct hifn_stats stats;
-	size_t slen;
-
-	slen = sizeof (stats);
-	if (sysctlbyname("hw.hifn.stats", &stats, &slen, NULL, 0) < 0)
-		err(1, "kern.hifn.stats");
-
-	printf("input %llu bytes %u packets\n",
-		stats.hst_ibytes, stats.hst_ipackets);
-	printf("output %llu bytes %u packets\n",
-		stats.hst_obytes, stats.hst_opackets);
-	printf("invalid %u nomem %u abort %u\n",
-		stats.hst_invalid, stats.hst_nomem, stats.hst_abort);
-	printf("noirq %u unaligned %u\n",
-		stats.hst_noirq, stats.hst_unaligned);
-	printf("totbatch %u maxbatch %u\n",
-		stats.hst_totbatch, stats.hst_maxbatch);
-	printf("nomem: map %u load %u mbuf %u mcl %u cr %u sd %u\n",
-		stats.hst_nomem_map, stats.hst_nomem_load,
-		stats.hst_nomem_mbuf, stats.hst_nomem_mcl,
-		stats.hst_nomem_cr, stats.hst_nomem_sd);
-	return 0;
-}
+#endif	/* _ARM64_KEXEC_H_ */
