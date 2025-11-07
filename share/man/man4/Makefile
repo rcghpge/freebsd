@@ -1005,19 +1005,22 @@ _ccd.4=		ccd.4
 
 .if ${MK_CDDL} != "no"
 _dtrace_provs=	dtrace_audit.4 \
+		dtrace_callout_execute.4 \
 		dtrace_dtrace.4 \
 		dtrace_fbt.4 \
 		dtrace_io.4 \
 		dtrace_ip.4 \
 		dtrace_kinst.4 \
 		dtrace_lockstat.4 \
+		dtrace_pid.4 \
 		dtrace_proc.4 \
 		dtrace_profile.4 \
 		dtrace_sched.4 \
 		dtrace_sctp.4 \
 		dtrace_tcp.4 \
 		dtrace_udp.4 \
-		dtrace_udplite.4
+		dtrace_udplite.4 \
+		dtrace_vfs.4
 
 MLINKS+=	dtrace_audit.4 dtaudit.4
 .endif
