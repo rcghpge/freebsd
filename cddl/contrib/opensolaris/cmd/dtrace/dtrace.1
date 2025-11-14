@@ -20,7 +20,7 @@
 .\"
 .\" $FreeBSD$
 .\"
-.Dd November 6, 2025
+.Dd November 12, 2025
 .Dt DTRACE 1
 .Os
 .Sh NAME
@@ -1252,6 +1252,14 @@ command line to define a set of macro variables and so forth).
 The additional arguments can be used in D programs specified using the
 .Fl s
 option or on the command line.
+.Sh ENVIRONMENT
+.Bl -tag -width 'DTRACE_DEBUG'
+.It Ev DTRACE_DEBUG
+When defined,
+.Nm
+will output debug log messages to
+.Xr stderr 4 .
+.El
 .Sh FILES
 .Bl -tag -width /boot/dtrace.dof -compact
 .It Pa /boot/dtrace.dof
@@ -1301,6 +1309,7 @@ in
 .Xr dtrace_lockstat 4 ,
 .Xr dtrace_pid 4 ,
 .Xr dtrace_proc 4 ,
+.Xr dtrace_priv 4 ,
 .Xr dtrace_profile 4 ,
 .Xr dtrace_sched 4 ,
 .Xr dtrace_sctp 4 ,
