@@ -1,4 +1,4 @@
-name: FreeBSD Hub
+name: Homepage
 
 on:
   push:

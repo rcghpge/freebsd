@@ -1,8 +1,12 @@
 FreeBSD Source Tree
 ==============
-[![FreeBSD Hub](https://github.com/rcghpge/freebsd/actions/workflows/freebsdhub.yml/badge.svg)](https://github.com/rcghpge/freebsd/actions/workflows/freebsdhub.yml)[![Cross-build Kernel](https://github.com/rcghpge/freebsd/actions/workflows/cross-bootstrap-tools.yml/badge.svg)](https://github.com/rcghpge/freebsd/actions/workflows/cross-bootstrap-tools.yml)
-[![Bandit](https://github.com/rcghpge/freebsd/actions/workflows/bandit.yml/badge.svg)](https://github.com/rcghpge/freebsd/actions/workflows/bandit.yml)[![CodeQL](https://github.com/rcghpge/freebsd/actions/workflows/github-code-scanning/codeql/badge.svg)](https://github.com/rcghpge/freebsd/actions/workflows/github-code-scanning/codeql)
-[![Dependabot Updates](https://github.com/rcghpge/freebsd/actions/workflows/dependabot/dependabot-updates/badge.svg)](https://github.com/rcghpge/freebsd/actions/workflows/dependabot/dependabot-updates)
+[![Homepage](https://github.com/rcghpge/freebsd/actions/workflows/homepage.yml/badge.svg)](https://github.com/rcghpge/freebsd/actions/workflows/homepage.yml)
+[![Potatobot](https://github.com/rcghpge/freebsd/actions/workflows/potatobot.yml/badge.svg)](https://github.com/rcghpge/freebsd/actions/workflows/potatobot.yml)
+[![Dependabot](https://github.com/rcghpge/freebsd/actions/workflows/dependabot/dependabot-updates/badge.svg)](https://github.com/rcghpge/freebsd/actions/workflows/dependabot/dependabot-updates)
+[![CodeQL](https://github.com/rcghpge/freebsd/actions/workflows/github-code-scanning/codeql/badge.svg)](https://github.com/rcghpge/freebsd/actions/workflows/github-code-scanning/codeql)
+[![Cross-build Kernel](https://github.com/rcghpge/freebsd/actions/workflows/cross-bootstrap-tools.yml/badge.svg)](https://github.com/rcghpge/freebsd/actions/workflows/cross-bootstrap-tools.yml)
+[![Bandit](https://github.com/rcghpge/freebsd/actions/workflows/bandit.yml/badge.svg)](https://github.com/rcghpge/freebsd/actions/workflows/bandit.yml)
+
 
 This repository tracks the official [FreeBSD source tree](https://github.com/freebsd/freebsd-src) and serves as a base for fostering base system research and development in the OSS and FreeBSD community.
 
@@ -72,6 +76,6 @@ Official bootable images can be found on the [FreeBSD release page](https://down
 
 This repository tracks FreeBSD development and can be used as a base for future upstream contributions.
 
-For official contribution guidelines and ways to get involved, see the [FreeBSD Community page](https://www.freebsd.org/community/).
+For official contribution guidelines and ways to get involved, see [CONTRIBUTING.md](CONTRIBUTING.md) and the [FreeBSD Community page](https://www.freebsd.org/community/).
 
 ---
