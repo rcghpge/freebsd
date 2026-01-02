@@ -1,4 +1,4 @@
-name: Resource Homepage
+name: Homepage
 
 on:
   push:
