@@ -423,7 +423,7 @@ do_fork(struct thread *td, struct fork_req *fr, struct proc *p2, struct thread *
 			pd = pdshare(p1->p_pd);
 		else
 			pd = pdcopy(p1->p_pd);
-		fd = fdcopy(p1->p_fd);
+		fd = fdcopy(p1->p_fd, p2);
 		fdtol = NULL;
 	} else {
 		if (fr->fr_flags2 & FR2_SHARE_PATHS)
@@ -610,10 +610,12 @@ do_fork(struct thread *td, struct fork_req *fr, struct proc *p2, struct thread *
 	p2->p_flag |= p1->p_flag & P_SUGID;
 	td2->td_pflags |= td->td_pflags & (TDP_ALTSTACK | TDP_SIGFASTBLOCK);
 	td2->td_pflags2 |= td->td_pflags2 & TDP2_UEXTERR;
-	SESS_LOCK(p1->p_session);
-	if (p1->p_session->s_ttyvp != NULL && p1->p_flag & P_CONTROLT)
-		p2->p_flag |= P_CONTROLT;
-	SESS_UNLOCK(p1->p_session);
+	if (p1->p_flag & P_CONTROLT) {
+		SESS_LOCK(p1->p_session);
+		if (p1->p_session->s_ttyvp != NULL)
+			p2->p_flag |= P_CONTROLT;
+		SESS_UNLOCK(p1->p_session);
+	}
 	if (fr->fr_flags & RFPPWAIT)
 		p2->p_flag |= P_PPWAIT;
 
@@ -1063,8 +1065,6 @@ fork1(struct thread *td, struct fork_req *fr)
 #ifdef MAC
 	mac_proc_init(newproc);
 #endif
-	newproc->p_klist = knlist_alloc(&newproc->p_mtx);
-	STAILQ_INIT(&newproc->p_ktr);
 
 	/*
 	 * Increment the count of procs running with this uid. Don't allow
@@ -1076,6 +1076,8 @@ fork1(struct thread *td, struct fork_req *fr)
 			goto fail0;
 		chgproccnt(cred->cr_ruidinfo, 1, 0);
 	}
+
+	newproc->p_klist = knlist_alloc(&newproc->p_mtx);
 
 	do_fork(td, fr, newproc, td2, vm2, fp_procdesc);
 	error = 0;

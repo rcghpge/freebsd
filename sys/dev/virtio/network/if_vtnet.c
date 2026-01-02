@@ -40,6 +40,7 @@
 #include <sys/mbuf.h>
 #include <sys/module.h>
 #include <sys/msan.h>
+#include <sys/sbuf.h>
 #include <sys/socket.h>
 #include <sys/sysctl.h>
 #include <sys/random.h>
@@ -281,7 +282,7 @@ static int vtnet_tso_disable = 0;
 SYSCTL_INT(_hw_vtnet, OID_AUTO, tso_disable, CTLFLAG_RDTUN,
     &vtnet_tso_disable, 0, "Disables TSO");
 
-static int vtnet_lro_disable = 0;
+static int vtnet_lro_disable = 1;
 SYSCTL_INT(_hw_vtnet, OID_AUTO, lro_disable, CTLFLAG_RDTUN,
     &vtnet_lro_disable, 0, "Disables hardware LRO");
 
@@ -1153,11 +1154,9 @@ vtnet_setup_interface(struct vtnet_softc *sc)
 	}
 
 	if (virtio_with_feature(dev, VIRTIO_NET_F_GUEST_CSUM)) {
-		if_setcapabilitiesbit(ifp, IFCAP_RXCSUM, 0);
-#ifdef notyet
 		/* BMV: Rx checksums not distinguished between IPv4 and IPv6. */
+		if_setcapabilitiesbit(ifp, IFCAP_RXCSUM, 0);
 		if_setcapabilitiesbit(ifp, IFCAP_RXCSUM_IPV6, 0);
-#endif
 
 		if (vtnet_tunable_int(sc, "fixup_needs_csum",
 		    vtnet_fixup_needs_csum) != 0)
@@ -1347,14 +1346,42 @@ vtnet_ioctl_ifcap(struct vtnet_softc *sc, struct ifreq *ifr)
 
 	VTNET_CORE_LOCK_ASSERT(sc);
 
-	if (mask & IFCAP_TXCSUM)
+	if (mask & IFCAP_TXCSUM) {
+		if (if_getcapenable(ifp) & IFCAP_TXCSUM &&
+		    if_getcapenable(ifp) & IFCAP_TSO4) {
+			/* Disable tso4, because txcsum will be disabled. */
+			if_setcapenablebit(ifp, 0, IFCAP_TSO4);
+			if_sethwassistbits(ifp, 0, CSUM_IP_TSO);
+			mask &= ~IFCAP_TSO4;
+		}
 		if_togglecapenable(ifp, IFCAP_TXCSUM);
-	if (mask & IFCAP_TXCSUM_IPV6)
+		if_togglehwassist(ifp, VTNET_CSUM_OFFLOAD);
+	}
+	if (mask & IFCAP_TXCSUM_IPV6) {
+		if (if_getcapenable(ifp) & IFCAP_TXCSUM_IPV6 &&
+		    if_getcapenable(ifp) & IFCAP_TSO6) {
+			/* Disable tso6, because txcsum6 will be disabled. */
+			if_setcapenablebit(ifp, 0, IFCAP_TSO6);
+			if_sethwassistbits(ifp, 0, CSUM_IP6_TSO);
+			mask &= ~IFCAP_TSO6;
+		}
 		if_togglecapenable(ifp, IFCAP_TXCSUM_IPV6);
-	if (mask & IFCAP_TSO4)
-		if_togglecapenable(ifp, IFCAP_TSO4);
-	if (mask & IFCAP_TSO6)
-		if_togglecapenable(ifp, IFCAP_TSO6);
+		if_togglehwassist(ifp, VTNET_CSUM_OFFLOAD_IPV6);
+	}
+	if (mask & IFCAP_TSO4) {
+		if (if_getcapenable(ifp) & (IFCAP_TXCSUM | IFCAP_TSO4)) {
+			/* tso4 can only be enabled, if txcsum is enabled. */
+			if_togglecapenable(ifp, IFCAP_TSO4);
+			if_togglehwassist(ifp, CSUM_IP_TSO);
+		}
+	}
+	if (mask & IFCAP_TSO6) {
+		if (if_getcapenable(ifp) & (IFCAP_TXCSUM_IPV6 | IFCAP_TSO6)) {
+			/* tso6 can only be enabled, if txcsum6 is enabled. */
+			if_togglecapenable(ifp, IFCAP_TSO6);
+			if_togglehwassist(ifp, CSUM_IP6_TSO);
+		}
+	}
 
 	if (mask & (IFCAP_RXCSUM | IFCAP_RXCSUM_IPV6 | IFCAP_LRO)) {
 		/*
@@ -1370,27 +1397,20 @@ vtnet_ioctl_ifcap(struct vtnet_softc *sc, struct ifreq *ifr)
 		if ((mask & (IFCAP_RXCSUM | IFCAP_RXCSUM_IPV6 | IFCAP_LRO)) ==
 		    IFCAP_LRO && vtnet_software_lro(sc))
 			reinit = update = 0;
-
-		if (mask & IFCAP_RXCSUM)
+		/*
+		 * VirtIO does not distinguish between receive checksum offload
+		 * for IPv4 and IPv6 packets, so treat them as a pair.
+		 */
+		if (mask & (IFCAP_RXCSUM | IFCAP_RXCSUM_IPV6)) {
 			if_togglecapenable(ifp, IFCAP_RXCSUM);
-		if (mask & IFCAP_RXCSUM_IPV6)
 			if_togglecapenable(ifp, IFCAP_RXCSUM_IPV6);
+		}
 		if (mask & IFCAP_LRO)
 			if_togglecapenable(ifp, IFCAP_LRO);
-
-		/*
-		 * VirtIO does not distinguish between IPv4 and IPv6 checksums
-		 * so treat them as a pair. Guest TSO (LRO) requires receive
-		 * checksums.
-		 */
-		if (if_getcapenable(ifp) & (IFCAP_RXCSUM | IFCAP_RXCSUM_IPV6)) {
-			if_setcapenablebit(ifp, IFCAP_RXCSUM, 0);
-#ifdef notyet
-			if_setcapenablebit(ifp, IFCAP_RXCSUM_IPV6, 0);
-#endif
-		} else
-			if_setcapenablebit(ifp, 0,
-			    (IFCAP_RXCSUM | IFCAP_RXCSUM_IPV6 | IFCAP_LRO));
+		/* Both SW and HW TCP LRO require receive checksum offload. */
+		if ((if_getcapenable(ifp) &
+		    (IFCAP_RXCSUM | IFCAP_RXCSUM_IPV6)) == 0)
+			if_setcapenablebit(ifp, 0, IFCAP_LRO);
 	}
 
 	if (mask & IFCAP_VLAN_HWFILTER) {
@@ -2506,10 +2526,6 @@ vtnet_txq_offload(struct vtnet_txq *txq, struct mbuf *m,
 		hdr->csum_start = vtnet_gtoh16(sc, csum_start);
 		hdr->csum_offset = vtnet_gtoh16(sc, m->m_pkthdr.csum_data);
 		txq->vtntx_stats.vtxs_csum++;
-	} else if ((flags & (CSUM_DATA_VALID | CSUM_PSEUDO_HDR)) &&
-	           (proto == IPPROTO_TCP || proto == IPPROTO_UDP) &&
-	           (m->m_pkthdr.csum_data == 0xFFFF)) {
-		hdr->flags |= VIRTIO_NET_HDR_F_DATA_VALID;
 	}
 
 	if (flags & (CSUM_IP_TSO | CSUM_IP6_TSO)) {
@@ -2623,8 +2639,7 @@ vtnet_txq_encap(struct vtnet_txq *txq, struct mbuf **m_head, int flags)
 		m->m_flags &= ~M_VLANTAG;
 	}
 
-	if (m->m_pkthdr.csum_flags &
-	    (VTNET_CSUM_ALL_OFFLOAD | CSUM_DATA_VALID)) {
+	if (m->m_pkthdr.csum_flags & VTNET_CSUM_ALL_OFFLOAD) {
 		m = vtnet_txq_offload(txq, m, hdr);
 		if ((*m_head = m) == NULL) {
 			error = ENOBUFS;
@@ -4384,6 +4399,35 @@ vtnet_setup_stat_sysctl(struct sysctl_ctx_list *ctx,
 	    "Times the transmit interrupt task rescheduled itself");
 }
 
+static int
+vtnet_sysctl_features(SYSCTL_HANDLER_ARGS)
+{
+	struct sbuf sb;
+	struct vtnet_softc *sc = (struct vtnet_softc *)arg1;
+	int error;
+
+	sbuf_new_for_sysctl(&sb, NULL, 0, req);
+	sbuf_printf(&sb, "%b", (uint32_t)sc->vtnet_features,
+	    VIRTIO_NET_FEATURE_BITS);
+	error = sbuf_finish(&sb);
+	sbuf_delete(&sb);
+	return (error);
+}
+
+static int
+vtnet_sysctl_flags(SYSCTL_HANDLER_ARGS)
+{
+	struct sbuf sb;
+	struct vtnet_softc *sc = (struct vtnet_softc *)arg1;
+	int error;
+
+	sbuf_new_for_sysctl(&sb, NULL, 0, req);
+	sbuf_printf(&sb, "%b", sc->vtnet_flags, VTNET_FLAGS_BITS);
+	error = sbuf_finish(&sb);
+	sbuf_delete(&sb);
+	return (error);
+}
+
 static void
 vtnet_setup_sysctl(struct vtnet_softc *sc)
 {
@@ -4406,6 +4450,12 @@ vtnet_setup_sysctl(struct vtnet_softc *sc)
 	SYSCTL_ADD_INT(ctx, child, OID_AUTO, "act_vq_pairs",
 	    CTLFLAG_RD, &sc->vtnet_act_vq_pairs, 0,
 	    "Number of active virtqueue pairs");
+	SYSCTL_ADD_PROC(ctx, child, OID_AUTO, "features",
+	    CTLTYPE_STRING | CTLFLAG_RD | CTLFLAG_MPSAFE, sc, 0,
+	    vtnet_sysctl_features, "A", "Features");
+	SYSCTL_ADD_PROC(ctx, child, OID_AUTO, "flags",
+	    CTLTYPE_STRING | CTLFLAG_RD | CTLFLAG_MPSAFE, sc, 0,
+	    vtnet_sysctl_flags, "A", "Flags");
 
 	vtnet_setup_stat_sysctl(ctx, child, sc);
 }

@@ -1988,7 +1988,7 @@ vm_object_page_remove(vm_object_t object, vm_pindex_t start, vm_pindex_t end,
 	    (options & (OBJPR_CLEANONLY | OBJPR_NOTMAPPED)) == OBJPR_NOTMAPPED,
 	    ("vm_object_page_remove: illegal options for object %p", object));
 	if (object->resident_page_count == 0)
-		return;
+		goto remove_pager;
 	vm_object_pip_add(object, 1);
 	vm_page_iter_limit_init(&pages, object, end);
 again:
@@ -2061,6 +2061,7 @@ wired:
 	}
 	vm_object_pip_wakeup(object);
 
+remove_pager:
 	vm_pager_freespace(object, start, (end == 0 ? object->size : end) -
 	    start);
 }
@@ -2160,9 +2161,9 @@ vm_object_populate(vm_object_t object, vm_pindex_t start, vm_pindex_t end)
  */
 boolean_t
 vm_object_coalesce(vm_object_t prev_object, vm_ooffset_t prev_offset,
-    vm_size_t prev_size, vm_size_t next_size, boolean_t reserved)
+    vm_size_t prev_size, vm_size_t next_size, int cflags)
 {
-	vm_pindex_t next_pindex;
+	vm_pindex_t next_end, next_pindex;
 
 	if (prev_object == NULL)
 		return (TRUE);
@@ -2196,10 +2197,12 @@ vm_object_coalesce(vm_object_t prev_object, vm_ooffset_t prev_offset,
 		return (FALSE);
 	}
 
+	next_end = next_pindex + next_size;
+
 	/*
 	 * Account for the charge.
 	 */
-	if (prev_object->cred != NULL) {
+	if (prev_object->cred != NULL && (cflags & OBJCO_NO_CHARGE) == 0) {
 		/*
 		 * If prev_object was charged, then this mapping,
 		 * although not charged now, may become writable
@@ -2210,38 +2213,67 @@ vm_object_coalesce(vm_object_t prev_object, vm_ooffset_t prev_offset,
 		 * entry, and swap reservation for this entry is
 		 * managed in appropriate time.
 		 */
-		if (!reserved && !swap_reserve_by_cred(ptoa(next_size),
-		    prev_object->cred)) {
-			VM_OBJECT_WUNLOCK(prev_object);
-			return (FALSE);
+		if (next_end > prev_object->size) {
+			vm_size_t charge = ptoa(next_end - prev_object->size);
+
+			if ((cflags & OBJCO_CHARGED) == 0) {
+				if (!swap_reserve_by_cred(charge,
+				    prev_object->cred)) {
+					VM_OBJECT_WUNLOCK(prev_object);
+					return (FALSE);
+				}
+			} else if (prev_object->size > next_pindex) {
+				/*
+				 * The caller charged, but:
+				 * - the object has already accounted for the
+				 *   space,
+				 * - and the object end is between previous
+				 *   mapping end and next_end.
+				 */
+				swap_release_by_cred(ptoa(prev_object->size -
+				    next_pindex), prev_object->cred);
+			}
+			prev_object->charge += charge;
+		} else if ((cflags & OBJCO_CHARGED) != 0) {
+			/*
+			 * The caller charged, but the object has
+			 * already accounted for the space.  Whole new
+			 * mapping charge should be released,
+			 */
+			swap_release_by_cred(ptoa(next_size),
+			    prev_object->cred);
 		}
-		prev_object->charge += ptoa(next_size);
 	}
 
 	/*
 	 * Remove any pages that may still be in the object from a previous
 	 * deallocation.
 	 */
-	if (next_pindex < prev_object->size) {
-		vm_object_page_remove(prev_object, next_pindex, next_pindex +
-		    next_size, 0);
-#if 0
-		if (prev_object->cred != NULL) {
-			KASSERT(prev_object->charge >=
-			    ptoa(prev_object->size - next_pindex),
-			    ("object %p overcharged 1 %jx %jx", prev_object,
-				(uintmax_t)next_pindex, (uintmax_t)next_size));
-			prev_object->charge -= ptoa(prev_object->size -
-			    next_pindex);
-		}
-#endif
-	}
+	if (next_pindex < prev_object->size)
+		vm_object_page_remove(prev_object, next_pindex, next_end, 0);
 
 	/*
 	 * Extend the object if necessary.
 	 */
-	if (next_pindex + next_size > prev_object->size)
-		prev_object->size = next_pindex + next_size;
+	if (next_end > prev_object->size)
+		prev_object->size = next_end;
+
+#ifdef INVARIANTS
+	/*
+	 * Re-check: there must be no pages in the next range backed
+	 * by prev_entry's object.  Otherwise, the resulting
+	 * corruption is same as faulting in a non-zeroed page.
+	 */
+	if (vm_check_pg_zero) {
+		vm_pindex_t pidx;
+
+		pidx = swap_pager_seek_data(prev_object, next_pindex);
+		KASSERT(pidx >= next_end,
+		    ("found obj %p pindex %#jx e %#jx %#jx %#jx",
+		    prev_object, pidx, (uintmax_t)prev_offset,
+		    (uintmax_t)prev_size, (uintmax_t)next_size));
+	}
+#endif
 
 	VM_OBJECT_WUNLOCK(prev_object);
 	return (TRUE);
@@ -2522,15 +2554,13 @@ vm_object_list_handler(struct sysctl_req *req, bool swap_only)
 			continue;
 		}
 		mtx_unlock(&vm_object_list_mtx);
+
+		memset(kvo, 0, sizeof(*kvo));
 		kvo->kvo_size = ptoa(obj->size);
 		kvo->kvo_resident = obj->resident_page_count;
 		kvo->kvo_ref_count = obj->ref_count;
 		kvo->kvo_shadow_count = atomic_load_int(&obj->shadow_count);
 		kvo->kvo_memattr = obj->memattr;
-		kvo->kvo_active = 0;
-		kvo->kvo_inactive = 0;
-		kvo->kvo_laundry = 0;
-		kvo->kvo_flags = 0;
 		if (!swap_only) {
 			vm_page_iter_init(&pages, obj);
 			VM_RADIX_FOREACH(m, &pages) {
@@ -2549,12 +2579,12 @@ vm_object_list_handler(struct sysctl_req *req, bool swap_only)
 					kvo->kvo_inactive++;
 				else if (vm_page_in_laundry(m))
 					kvo->kvo_laundry++;
+
+				if (vm_page_wired(m))
+					kvo->kvo_wired++;
 			}
 		}
 
-		kvo->kvo_vn_fileid = 0;
-		kvo->kvo_vn_fsid = 0;
-		kvo->kvo_vn_fsid_freebsd11 = 0;
 		freepath = NULL;
 		fullpath = "";
 		vp = NULL;

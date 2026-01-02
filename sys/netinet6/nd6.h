@@ -89,6 +89,7 @@ struct nd_ifinfo {
 #define	ND6_IFF_NO_RADR		0x40
 #define ND6_IFF_NO_PREFER_IFACE	0x80 /* XXX: not related to ND. */
 #define ND6_IFF_NO_DAD		0x100
+#define ND6_IFF_STABLEADDR	0x800
 #ifdef EXPERIMENTAL
 /* XXX: not related to ND. */
 #define	ND6_IFF_IPV6_ONLY	0x200 /* draft-ietf-6man-ipv6only-flag */
@@ -97,8 +98,7 @@ struct nd_ifinfo {
 #endif
 
 #ifdef _KERNEL
-#define ND_IFINFO(ifp) \
-	(((struct in6_ifextra *)if_getafdata(ifp, AF_INET6))->nd_ifinfo)
+#define ND_IFINFO(ifp)	((if_getinet6(ifp))->nd_ifinfo)
 #define IN6_LINKMTU(ifp) \
 	((ND_IFINFO(ifp)->linkmtu && ND_IFINFO(ifp)->linkmtu < (ifp)->if_mtu) \
 	    ? ND_IFINFO(ifp)->linkmtu \
@@ -169,6 +169,10 @@ struct	in6_ndifreq {
 /* Prefix status */
 #define NDPRF_ONLINK		0x1
 #define NDPRF_DETACHED		0x2
+
+/* ND6 NA output flags */
+#define	ND6_NA_OPT_LLA		0x01
+#define	ND6_NA_CARP_MASTER	0x02
 
 /* protocol constants */
 #define MAX_RTR_SOLICITATION_DELAY	1	/* 1sec */

@@ -66,6 +66,7 @@ __DEFAULT_YES_OPTIONS = \
     AUTOFS \
     BHYVE \
     BLACKLIST \
+    BLOCKLIST \
     BLUETOOTH \
     BOOT \
     BOOTPARAMD \
@@ -85,6 +86,7 @@ __DEFAULT_YES_OPTIONS = \
     CRYPT \
     CUSE \
     CXGBETOOL \
+    DEPEND_CLEANUP \
     DICT \
     DMAGENT \
     DTRACE \
@@ -208,9 +210,11 @@ __DEFAULT_NO_OPTIONS = \
     DTRACE_TESTS \
     EXPERIMENTAL \
     HESIOD \
+    IPFILTER_IPFS \
     LOADER_VERBOSE \
     LOADER_VERIEXEC_PASS_MANIFEST \
     LLVM_FULL_DEBUGINFO \
+    LLVM_LINK_STATIC_LIBRARIES \
     MALLOC_PRODUCTION \
     OFED_EXTRA \
     OPENLDAP \
@@ -242,6 +246,7 @@ __LIBC_MALLOC_DEFAULT=	jemalloc
 #
 .for var in \
     BLACKLIST \
+    BLOCKLIST \
     BZIP2 \
     INET \
     INET6 \
@@ -300,7 +305,7 @@ __DEFAULT_NO_OPTIONS+=FDT
 __DEFAULT_YES_OPTIONS+=FDT
 .endif
 
-.if ${__T:Marm*} == "" && ${__T:Mriscv64*} == ""
+.if ${__T:Mriscv64*} == ""
 __DEFAULT_YES_OPTIONS+=LLDB
 .else
 __DEFAULT_NO_OPTIONS+=LLDB
@@ -389,6 +394,14 @@ BROKEN_OPTIONS+= TESTS
 .if ${MK_SOURCELESS} == "no"
 MK_SOURCELESS_HOST:=	no
 MK_SOURCELESS_UCODE:= no
+.endif
+
+.if ${MK_BLACKLIST} == "no"
+MK_BLOCKLIST:=	no
+.endif
+
+.if ${MK_BLACKLIST_SUPPORT} == "no"
+MK_BLOCKLIST_SUPPORT:=	no
 .endif
 
 .if ${MK_CDDL} == "no"
@@ -501,6 +514,10 @@ MK_LLVM_CXXFILT:=	yes
 
 .if ${MK_LOADER_VERIEXEC} == "no"
 MK_LOADER_VERIEXEC_PASS_MANIFEST := no
+.endif
+
+.if ${MK_CLEAN} == "yes"
+MK_DEPEND_CLEANUP:=	no
 .endif
 
 #

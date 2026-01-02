@@ -168,10 +168,10 @@ tags = ['functional', 'cli_root', 'zinject']
 tests = ['zdb_002_pos', 'zdb_003_pos', 'zdb_004_pos', 'zdb_005_pos',
     'zdb_006_pos', 'zdb_args_neg', 'zdb_args_pos',
     'zdb_block_size_histogram', 'zdb_checksum', 'zdb_decompress',
-    'zdb_display_block', 'zdb_encrypted', 'zdb_label_checksum',
-    'zdb_object_range_neg', 'zdb_object_range_pos', 'zdb_objset_id',
-    'zdb_decompress_zstd', 'zdb_recover', 'zdb_recover_2', 'zdb_backup',
-    'zdb_tunables']
+    'zdb_display_block', 'zdb_encrypted', 'zdb_encrypted_raw',
+    'zdb_label_checksum', 'zdb_object_range_neg', 'zdb_object_range_pos',
+    'zdb_objset_id', 'zdb_decompress_zstd', 'zdb_recover', 'zdb_recover_2',
+    'zdb_backup', 'zdb_tunables']
 pre =
 post =
 tags = ['functional', 'cli_root', 'zdb']
@@ -215,7 +215,7 @@ tests = ['zfs_create_001_pos', 'zfs_create_002_pos', 'zfs_create_003_pos',
 tags = ['functional', 'cli_root', 'zfs_create']
 
 [tests/functional/cli_root/zpool_prefetch]
-tests = ['zpool_prefetch_001_pos']
+tests = ['zpool_prefetch_001_pos', 'zpool_prefetch_002_pos']
 tags = ['functional', 'cli_root', 'zpool_prefetch']
 
 [tests/functional/cli_root/zfs_destroy]
@@ -395,8 +395,9 @@ tags = ['functional', 'cli_root', 'zpool']
 [tests/functional/cli_root/zpool_add]
 tests = ['zpool_add_001_pos', 'zpool_add_002_pos', 'zpool_add_003_pos',
     'zpool_add_004_pos', 'zpool_add_006_pos', 'zpool_add_007_neg',
-    'zpool_add_008_neg', 'zpool_add_009_neg', 'zpool_add_010_pos',
-    'add-o_ashift', 'add_prop_ashift', 'zpool_add_dryrun_output']
+    'zpool_add_008_neg', 'zpool_add_009_neg', 'zpool_add_warn_create',
+    'zpool_add_warn_degraded', 'zpool_add_warn_removal', 'add-o_ashift',
+    'add_prop_ashift', 'zpool_add_dryrun_output']
 tags = ['functional', 'cli_root', 'zpool_add']
 
 [tests/functional/cli_root/zpool_attach]
@@ -489,6 +490,10 @@ tests = ['zpool_import_001_pos', 'zpool_import_002_pos',
     'zpool_import_parallel_neg', 'zpool_import_parallel_admin']
 tags = ['functional', 'cli_root', 'zpool_import']
 timeout = 1200
+
+[tests/functional/cli_root/zpool_iostat]
+tests = ['zpool_iostat_interval_all', 'zpool_iostat_interval_some']
+tags = ['functional', 'cli_root', 'zpool_iostat']
 
 [tests/functional/cli_root/zpool_labelclear]
 tests = ['zpool_labelclear_active', 'zpool_labelclear_exported',
@@ -641,9 +646,9 @@ tests = ['zfs_list_001_pos', 'zfs_list_002_pos', 'zfs_list_003_pos',
 user =
 tags = ['functional', 'cli_user', 'zfs_list']
 
-[tests/functional/cli_root/zfs_send_delegation_user]
+[tests/functional/cli_user/zfs_send_delegation_user]
 tests = ['zfs_send_usertest']
-tags = ['functional', 'cli_root', 'zfs_send_delegation_user']
+tags = ['functional', 'cli_user', 'zfs_send_delegation_user']
 
 [tests/functional/cli_user/zpool_iostat]
 tests = ['zpool_iostat_001_neg', 'zpool_iostat_002_pos',
@@ -701,7 +706,8 @@ tags = ['functional', 'deadman']
 [tests/functional/dedup]
 tests = ['dedup_fdt_create', 'dedup_fdt_import', 'dedup_fdt_pacing',
     'dedup_legacy_create', 'dedup_legacy_import', 'dedup_legacy_fdt_upgrade',
-    'dedup_legacy_fdt_mixed', 'dedup_quota', 'dedup_prune', 'dedup_zap_shrink']
+    'dedup_legacy_fdt_mixed', 'dedup_quota', 'dedup_prune', 'dedup_prune_leak',
+    'dedup_zap_shrink']
 pre =
 post =
 tags = ['functional', 'dedup']
@@ -1014,7 +1020,7 @@ tests = ['clone_001_pos', 'rollback_001_pos', 'rollback_002_pos',
     'snapshot_006_pos', 'snapshot_007_pos', 'snapshot_008_pos',
     'snapshot_009_pos', 'snapshot_010_pos', 'snapshot_011_pos',
     'snapshot_012_pos', 'snapshot_013_pos', 'snapshot_014_pos',
-    'snapshot_017_pos', 'snapshot_018_pos']
+    'snapshot_017_pos', 'snapshot_018_pos', 'snapshot_019_pos']
 tags = ['functional', 'snapshot']
 
 [tests/functional/snapused]
@@ -1085,7 +1091,8 @@ tags = ['functional', 'write_dirs']
 [tests/functional/xattr]
 tests = ['xattr_001_pos', 'xattr_002_neg', 'xattr_003_neg', 'xattr_004_pos',
     'xattr_005_pos', 'xattr_006_pos', 'xattr_007_neg',
-    'xattr_011_pos', 'xattr_012_pos', 'xattr_013_pos', 'xattr_compat']
+    'xattr_011_pos', 'xattr_012_pos', 'xattr_013_pos', 'xattr_014_pos',
+    'xattr_compat']
 tags = ['functional', 'xattr']
 
 [tests/functional/zvol/zvol_ENOSPC]

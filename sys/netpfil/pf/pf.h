@@ -290,7 +290,7 @@ struct pf_status {
 	uint64_t	lcounters[LCNT_MAX];
 	uint64_t	fcounters[FCNT_MAX];
 	uint64_t	scounters[SCNT_MAX];
-	uint64_t	pcounters[2][2][3];
+	uint64_t	pcounters[2][2][2];
 	uint64_t	bcounters[2][2];
 	uint32_t	running;
 	uint32_t	states;
@@ -637,6 +637,8 @@ struct pf_rule {
 #define	PFRULE_PFLOW		0x00040000
 #define	PFRULE_ALLOW_RELATED	0x00080000
 #define	PFRULE_AFTO		0x00200000  /* af-to rule */
+#define	PFRULE_ONCE		0x00400000  /* one shot rule */
+#define	PFRULE_EXPIRED		0x00800000  /* one shot rule hit by pkt */
 
 #ifdef _KERNEL
 #define	PFRULE_REFS		0x0080	/* rule has references */

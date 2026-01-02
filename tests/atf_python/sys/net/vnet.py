@@ -109,6 +109,9 @@ class VnetInterface(object):
             ret.append(if2);
         return ret
 
+    def set_mtu(self, mtu):
+        run_cmd("/sbin/ifconfig {} mtu {}".format(self.name, mtu))
+
     def setup_addr(self, _addr: str):
         addr = ipaddress.ip_interface(_addr)
         if addr.version == 6:
@@ -283,14 +286,15 @@ class VnetFactory(object):
             time.sleep(0.1)
         return not_matched
 
-    def create_vnet(self, vnet_alias: str, ifaces: List[VnetInterface]):
+    def create_vnet(self, vnet_alias: str, ifaces: List[VnetInterface], opts: List[str]):
         vnet_name = "pytest:{}".format(convert_test_name(self.topology_id))
         if self._vnets:
             # add number to distinguish jails
             vnet_name = "{}_{}".format(vnet_name, len(self._vnets) + 1)
         iface_cmds = " ".join(["vnet.interface={}".format(i.name) for i in ifaces])
-        cmd = "/usr/sbin/jail -i -c name={} persist vnet {}".format(
-            vnet_name, iface_cmds
+        opt_cmds = " ".join(["{}".format(i) for i in opts])
+        cmd = "/usr/sbin/jail -i -c name={} persist vnet {} {}".format(
+            vnet_name, iface_cmds, opt_cmds
         )
         jid = 0
         try:
@@ -369,6 +373,7 @@ class VnetTestTemplate(BaseTest):
             idx = iface_map.vnet_aliases.index(vnet.alias)
             prefixes6 = topo[iface.alias].get("prefixes6", [])
             prefixes4 = topo[iface.alias].get("prefixes4", [])
+            mtu = topo[iface.alias].get("mtu", 0)
             if prefixes6 or prefixes4:
                 ipv6_ifaces.append(iface)
                 iface.turn_up()
@@ -377,6 +382,8 @@ class VnetTestTemplate(BaseTest):
             for prefix in prefixes6 + prefixes4:
                 if prefix[idx]:
                     iface.setup_addr(prefix[idx])
+            if mtu != 0:
+                iface.set_mtu(mtu)
         for iface in ipv6_ifaces:
             while iface.has_tentative():
                 time.sleep(0.1)
@@ -421,7 +428,10 @@ class VnetTestTemplate(BaseTest):
                     idx = len(iface_map[iface_alias].vnet_aliases)
                     iface_map[iface_alias].vnet_aliases.append(obj_name)
                     vnet_ifaces.append(iface_map[iface_alias].ifaces[idx])
-                vnet = vnet_factory.create_vnet(obj_name, vnet_ifaces)
+                opts = []
+                if "opts" in obj_data:
+                    opts = obj_data["opts"]
+                vnet = vnet_factory.create_vnet(obj_name, vnet_ifaces, opts)
                 vnet_map[obj_name] = vnet
                 # Allow reference to VNETs as attributes
                 setattr(self, obj_name, vnet)

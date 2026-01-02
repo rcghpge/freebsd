@@ -372,7 +372,7 @@ _ILINKS+= x86
 _ILINKS+= i386
 .endif
 
-.if ${MK_REPRODUCIBLE_BUILD} != "no"
+.if ${MK_REPRODUCIBLE_PATHS} != "no"
 PREFIX_SYSDIR=/usr/src/sys
 PREFIX_OBJDIR=/usr/obj/usr/src/${MACHINE}.${MACHINE_CPUARCH}/sys/${KERN_IDENT}
 CFLAGS+= -ffile-prefix-map=${SYSDIR}=${PREFIX_SYSDIR}
@@ -397,6 +397,14 @@ CFLAGS+= -fdebug-prefix-map=./machine=${PREFIX_SYSDIR}/${MACHINE}/include
 CFLAGS+= -fdebug-prefix-map=./${_link}=${PREFIX_SYSDIR}/${_link}/include
 .endif
 .endfor
+
+# Install GDB plugins that are useful for kernel debugging.  See the
+# README in sys/tools/gdb for more information.
+GDB_FILES= acttrace.py \
+	   freebsd.py \
+	   pcpu.py \
+	   selftest.py \
+	   vnet.py
 
 ${_ILINKS}:
 	@case ${.TARGET} in \
@@ -447,6 +455,13 @@ kernel-install: .PHONY
 .if defined(DEBUG) && !defined(INSTALL_NODEBUG) && ${MK_KERNEL_SYMBOLS} != "no"
 	mkdir -p ${DESTDIR}${KERN_DEBUGDIR}${KODIR}
 	${INSTALL} -p -m ${KMODMODE} -o ${KMODOWN} -g ${KMODGRP} ${KERNEL_KO}.debug ${DESTDIR}${KERN_DEBUGDIR}${KODIR}/
+	${INSTALL} -m ${KMODMODE} -o ${KMODOWN} -g ${KMODGRP} \
+	    $S/tools/kernel-gdb.py ${DESTDIR}${KERN_DEBUGDIR}${KODIR}/${KERNEL_KO}-gdb.py
+	mkdir -p ${DESTDIR}${KERN_DEBUGDIR}${KODIR}/gdb
+.for file in ${GDB_FILES}
+	${INSTALL} -m ${KMODMODE} -o ${KMODOWN} -g ${KMODGRP} \
+	    $S/tools/gdb/${file} ${DESTDIR}${KERN_DEBUGDIR}${KODIR}/gdb/${file}
+.endfor
 .endif
 .if defined(KERNEL_EXTRA_INSTALL)
 	${INSTALL} -p -m ${KMODMODE} -o ${KMODOWN} -g ${KMODGRP} ${KERNEL_EXTRA_INSTALL} ${DESTDIR}${KODIR}/

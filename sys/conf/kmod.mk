@@ -303,7 +303,7 @@ all: ${PROG}
 beforedepend: ${_ILINKS}
 beforebuild: ${_ILINKS}
 
-.if ${MK_REPRODUCIBLE_BUILD} != "no"
+.if ${MK_REPRODUCIBLE_PATHS} != "no"
 PREFIX_SYSDIR=/usr/src/sys
 CFLAGS+= -ffile-prefix-map=${SYSDIR}=${PREFIX_SYSDIR}
 .if defined(KERNBUILDDIR)
@@ -472,7 +472,7 @@ CLEANFILES+=	${_i}
 .m.h:	${SYSDIR}/tools/makeobjops.awk
 	${AWK} -f ${SYSDIR}/tools/makeobjops.awk ${.IMPSRC} -h
 
-.for _i in mii pccard
+.for _i in mii
 .if !empty(SRCS:M${_i}devs.h)
 CLEANFILES+=	${_i}devs.h
 ${_i}devs.h: ${SYSDIR}/tools/${_i}devs2h.awk ${SYSDIR}/dev/${_i}/${_i}devs

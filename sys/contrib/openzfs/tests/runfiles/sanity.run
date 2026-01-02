@@ -580,7 +580,7 @@ tests = ['clone_001_pos', 'rollback_001_pos', 'rollback_002_pos',
     'snapshot_007_pos', 'snapshot_008_pos', 'snapshot_009_pos',
     'snapshot_010_pos', 'snapshot_011_pos', 'snapshot_012_pos',
     'snapshot_013_pos', 'snapshot_014_pos', 'snapshot_017_pos',
-    'snapshot_018_pos']
+    'snapshot_018_pos', 'snapshot_019_pos']
 tags = ['functional', 'snapshot']
 
 [tests/functional/snapused]
@@ -622,7 +622,7 @@ tags = ['functional', 'vdev_zaps']
 [tests/functional/xattr]
 tests = ['xattr_001_pos', 'xattr_002_neg', 'xattr_003_neg', 'xattr_004_pos',
     'xattr_005_pos', 'xattr_006_pos', 'xattr_007_neg',
-    'xattr_011_pos', 'xattr_013_pos', 'xattr_compat']
+    'xattr_011_pos', 'xattr_013_pos', 'xattr_014_pos', 'xattr_compat']
 tags = ['functional', 'xattr']
 
 [tests/functional/zvol/zvol_ENOSPC]

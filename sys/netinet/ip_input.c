@@ -29,7 +29,6 @@
  * SUCH DAMAGE.
  */
 
-#include <sys/cdefs.h>
 #include "opt_bootp.h"
 #include "opt_inet.h"
 #include "opt_ipstealth.h"
@@ -353,6 +352,7 @@ VNET_SYSINIT(ip_vnet_init, SI_SUB_PROTO_DOMAIN, SI_ORDER_FOURTH,
 static void
 ip_init(const void *unused __unused)
 {
+	struct ifnet *ifp;
 
 	ipreass_init();
 
@@ -377,6 +377,14 @@ ip_init(const void *unused __unused)
 #ifdef	RSS
 	netisr_register(&ip_direct_nh);
 #endif
+	/*
+	 * XXXGL: we use SYSINIT() here, but go over V_ifnet.  It was the same
+	 * way before dom_ifattach removal.  This worked because when any
+	 * non-default vnet is created, there are no interfaces inside.
+	 * Eventually this needs to be fixed.
+	 */
+	CK_STAILQ_FOREACH(ifp, &V_ifnet, if_link)
+		in_ifattach(NULL, ifp);
 }
 SYSINIT(ip_init, SI_SUB_PROTO_DOMAIN, SI_ORDER_THIRD, ip_init, NULL);
 

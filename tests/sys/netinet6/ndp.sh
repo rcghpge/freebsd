@@ -188,9 +188,110 @@ ndp_slaac_default_route_cleanup() {
 	vnet_cleanup
 }
 
+atf_test_case "ndp_prefix_len_mismatch" "cleanup"
+ndp_prefix_len_mismatch_head() {
+	atf_set descr 'Test RAs on an interface without a /64 lladdr'
+	atf_set require.user root
+	atf_set require.progs python3 scapy
+}
+
+ndp_prefix_len_mismatch_body() {
+	vnet_init
+
+	epair=$(vnet_mkepair)
+
+	vnet_mkjail alcatraz ${epair}a
+
+	jexec alcatraz ifconfig ${epair}a inet6 -auto_linklocal
+	jexec alcatraz ifconfig ${epair}a inet6 -ifdisabled
+	jexec alcatraz ifconfig ${epair}a inet6 accept_rtadv
+	jexec alcatraz ifconfig ${epair}a inet6 fe80::5a9c:fcff:fe10:5d07/127
+	jexec alcatraz ifconfig ${epair}a up
+
+	ifconfig ${epair}b inet6 -ifdisabled
+	ifconfig ${epair}b up
+
+	atf_check -e ignore python3 $(atf_get_srcdir)/ra.py \
+	    --sendif ${epair}b \
+	    --dst $(ndp_if_lladdr ${epair}a alcatraz) \
+	    --src $(ndp_if_lladdr ${epair}b) \
+	    --prefix "2001:db8:ffff:1000::" --prefixlen 64
+
+	atf_check \
+	    -o match:"inet6 2001:db8:ffff:1000:.* prefixlen 64.*autoconf.*" \
+	    jexec alcatraz ifconfig ${epair}a
+}
+
+ndp_prefix_len_mismatch_cleanup() {
+	vnet_cleanup
+}
+
+atf_test_case "ndp_prefix_lifetime" "cleanup"
+ndp_prefix_lifetime_head() {
+	atf_set descr 'Test ndp slaac address lifetime handling'
+	atf_set require.user root
+	atf_set require.progs python3 scapy
+}
+
+ndp_prefix_lifetime_body() {
+	local epair0 jname prefix
+
+	vnet_init
+
+	jname="v6t-ndp_prefix_lifetime"
+
+	epair0=$(vnet_mkepair)
+
+	vnet_mkjail ${jname} ${epair0}a
+
+	ndp_if_up ${epair0}a ${jname}
+	ndp_if_up ${epair0}b
+	atf_check jexec ${jname} ifconfig ${epair0}a inet6 accept_rtadv no_dad
+
+	prefix="2001:db8:ffff:1000:"
+
+        # Send an RA advertising a prefix.
+	atf_check -e ignore python3 $(atf_get_srcdir)/ra.py \
+	    --sendif ${epair0}b \
+	    --dst $(ndp_if_lladdr ${epair0}a ${jname}) \
+	    --src $(ndp_if_lladdr ${epair0}b) \
+	    --prefix "2001:db8:ffff:1000::" --prefixlen 64 \
+	    --validlifetime 10 --preferredlifetime 5
+
+	# Wait for a default router to appear.
+	while [ -z "$(jexec ${jname} ndp -r)" ]; do
+		sleep 0.1
+	done
+	atf_check \
+	    -o match:"^default[[:space:]]+fe80:" \
+	    jexec ${jname} netstat -rn -6
+
+	atf_check \
+	    -o match:"inet6 ${prefix}.* prefixlen 64 autoconf pltime 5 vltime 10" \
+	    jexec ${jname} ifconfig ${epair0}a
+
+	# Wait for the address to become deprecated.
+	sleep 6
+	atf_check \
+	    -o match:"inet6 ${prefix}.* prefixlen 64 deprecated autoconf pltime 0 vltime [1-9]+" \
+	    jexec ${jname} ifconfig -L ${epair0}a
+
+	# Wait for the address to expire.
+	sleep 6
+	atf_check \
+	    -o not-match:"inet6 ${prefix}.*" \
+	    jexec ${jname} ifconfig ${epair0}a
+}
+
+ndp_prefix_lifetime_cleanup() {
+	vnet_cleanup
+}
+
 atf_init_test_cases()
 {
 	atf_add_test_case "ndp_add_gu_success"
 	atf_add_test_case "ndp_del_gu_success"
 	atf_add_test_case "ndp_slaac_default_route"
+	atf_add_test_case "ndp_prefix_len_mismatch"
+	atf_add_test_case "ndp_prefix_lifetime"
 }

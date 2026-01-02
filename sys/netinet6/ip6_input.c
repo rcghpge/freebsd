@@ -60,7 +60,6 @@
  * SUCH DAMAGE.
  */
 
-#include <sys/cdefs.h>
 #include "opt_inet.h"
 #include "opt_inet6.h"
 #include "opt_ipsec.h"
@@ -235,6 +234,7 @@ ip6_vnet_init(void *arg __unused)
 	    &V_ip6_auto_linklocal);
 	TUNABLE_INT_FETCH("net.inet6.ip6.accept_rtadv", &V_ip6_accept_rtadv);
 	TUNABLE_INT_FETCH("net.inet6.ip6.no_radr", &V_ip6_no_radr);
+	TUNABLE_BOOL_FETCH("net.inet6.ip6.use_stableaddr", &V_ip6_use_stableaddr);
 
 	CK_STAILQ_INIT(&V_in6_ifaddrhead);
 	V_in6_ifaddrhashtbl = hashinit(IN6ADDR_NHASH, M_IFADDR,
@@ -286,6 +286,7 @@ VNET_SYSINIT(ip6_vnet_init, SI_SUB_PROTO_DOMAIN, SI_ORDER_FOURTH,
 static void
 ip6_init(void *arg __unused)
 {
+	struct ifnet *ifp;
 
 	/*
 	 * Register statically those protocols that are unlikely to ever go
@@ -312,6 +313,12 @@ ip6_init(void *arg __unused)
 #ifdef RSS
 	netisr_register(&ip6_direct_nh);
 #endif
+	/*
+         * XXXGL: we use SYSINIT() here, but go over V_ifnet.  See comment
+	 * in sys/netinet/ip_input.c:ip_init().
+         */
+        CK_STAILQ_FOREACH(ifp, &V_ifnet, if_link)
+                in6_ifarrival(NULL, ifp);
 }
 SYSINIT(ip6_init, SI_SUB_PROTO_DOMAIN, SI_ORDER_THIRD, ip6_init, NULL);
 

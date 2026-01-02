@@ -81,7 +81,7 @@
 #include <sys/mount.h>
 #include <sys/sysctl.h>
 #include <sys/fcntl.h>
-#define EXTERR_CATEGORY EXTERR_CAT_FUSE
+#define EXTERR_CATEGORY EXTERR_CAT_FUSE_VFS
 #include <sys/exterrvar.h>
 
 #include "fuse.h"
@@ -278,13 +278,13 @@ fuse_vfsop_fhtovp(struct mount *mp, struct fid *fhp, int flags,
 
 	error = VFS_VGET(mp, ffhp->nid, LK_EXCLUSIVE, &nvp);
 	if (error) {
-		*vpp = NULLVP;
+		*vpp = NULL;
 		return (error);
 	}
 	fvdat = VTOFUD(nvp);
 	if (fvdat->generation != ffhp->gen ) {
 		vput(nvp);
-		*vpp = NULLVP;
+		*vpp = NULL;
 		return (ESTALE);
 	}
 	*vpp = nvp;

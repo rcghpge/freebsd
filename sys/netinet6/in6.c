@@ -60,7 +60,6 @@
  * SUCH DAMAGE.
  */
 
-#include <sys/cdefs.h>
 #include "opt_inet.h"
 #include "opt_inet6.h"
 
@@ -479,7 +478,7 @@ in6_control_ioctl(u_long cmd, void *data,
 		/* FALLTHROUGH */
 	case SIOCGIFSTAT_IN6:
 	case SIOCGIFSTAT_ICMP6:
-		if (ifp->if_afdata[AF_INET6] == NULL) {
+		if (ifp->if_inet6 == NULL) {
 			error = EPFNOSUPPORT;
 			goto out;
 		}
@@ -526,15 +525,13 @@ in6_control_ioctl(u_long cmd, void *data,
 		break;
 
 	case SIOCGIFSTAT_IN6:
-		COUNTER_ARRAY_COPY(((struct in6_ifextra *)
-		    ifp->if_afdata[AF_INET6])->in6_ifstat,
+		COUNTER_ARRAY_COPY(ifp->if_inet6->in6_ifstat,
 		    &ifr->ifr_ifru.ifru_stat,
 		    sizeof(struct in6_ifstat) / sizeof(uint64_t));
 		break;
 
 	case SIOCGIFSTAT_ICMP6:
-		COUNTER_ARRAY_COPY(((struct in6_ifextra *)
-		    ifp->if_afdata[AF_INET6])->icmp6_ifstat,
+		COUNTER_ARRAY_COPY(ifp->if_inet6->icmp6_ifstat,
 		    &ifr->ifr_ifru.ifru_icmp6stat,
 		    sizeof(struct icmp6_ifstat) / sizeof(uint64_t));
 		break;
@@ -1295,8 +1292,8 @@ in6_addifaddr(struct ifnet *ifp, struct in6_aliasreq *ifra, struct in6_ifaddr *i
 	 */
 	bzero(&pr0, sizeof(pr0));
 	pr0.ndpr_ifp = ifp;
-	pr0.ndpr_plen = in6_mask2len(&ifra->ifra_prefixmask.sin6_addr,
-	    NULL);
+	pr0.ndpr_plen = ia->ia_plen =
+	    in6_mask2len(&ifra->ifra_prefixmask.sin6_addr, NULL);
 	if (pr0.ndpr_plen == 128) {
 		/* we don't need to install a host route. */
 		goto aifaddr_out;
@@ -1490,16 +1487,16 @@ in6_unlink_ifa(struct in6_ifaddr *ia, struct ifnet *ifp)
 	 * positive reference.
 	 */
 	remove_lle = 0;
-	if (ia->ia6_ndpr == NULL) {
-		nd6log((LOG_NOTICE,
-		    "in6_unlink_ifa: autoconf'ed address "
-		    "%s has no prefix\n", ip6_sprintf(ip6buf, IA6_IN6(ia))));
-	} else {
+	if (ia->ia6_ndpr != NULL) {
 		ia->ia6_ndpr->ndpr_addrcnt--;
 		/* Do not delete lles within prefix if refcont != 0 */
 		if (ia->ia6_ndpr->ndpr_addrcnt == 0)
 			remove_lle = 1;
 		ia->ia6_ndpr = NULL;
+	} else if (ia->ia_plen < 128) {
+		nd6log((LOG_NOTICE,
+		    "in6_unlink_ifa: autoconf'ed address "
+		    "%s has no prefix\n", ip6_sprintf(ip6buf, IA6_IN6(ia))));
 	}
 
 	nd6_rem_ifa_lle(ia, remove_lle);
@@ -2254,15 +2251,13 @@ in6_lltable_match_prefix(const struct sockaddr *saddr,
 static void
 in6_lltable_free_entry(struct lltable *llt, struct llentry *lle)
 {
-	struct ifnet *ifp __diagused;
 
 	LLE_WLOCK_ASSERT(lle);
 	KASSERT(llt != NULL, ("lltable is NULL"));
 
 	/* Unlink entry from table */
 	if ((lle->la_flags & LLE_LINKED) != 0) {
-		ifp = llt->llt_ifp;
-		IF_AFDATA_WLOCK_ASSERT(ifp);
+		LLTABLE_LOCK_ASSERT(llt);
 		lltable_unlink_entry(llt, lle);
 	}
 
@@ -2422,7 +2417,7 @@ in6_lltable_lookup(struct lltable *llt, u_int flags,
 	int family = flags >> 16;
 	struct llentry *lle;
 
-	IF_AFDATA_LOCK_ASSERT(llt->llt_ifp);
+	LLTABLE_RLOCK_ASSERT(llt);
 	KASSERT(l3addr->sa_family == AF_INET6,
 	    ("sin_family %d", l3addr->sa_family));
 	KASSERT((flags & (LLE_UNLOCKED | LLE_EXCLUSIVE)) !=
@@ -2446,7 +2441,7 @@ in6_lltable_lookup(struct lltable *llt, u_int flags,
 		LLE_RLOCK(lle);
 
 	/*
-	 * If the afdata lock is not held, the LLE may have been unlinked while
+	 * If the lltable lock is not held, the LLE may have been unlinked while
 	 * we were blocked on the LLE lock.  Check for this case.
 	 */
 	if (__predict_false((lle->la_flags & LLE_LINKED) == 0)) {
@@ -2570,16 +2565,14 @@ in6_lltattach(struct ifnet *ifp)
 struct lltable *
 in6_lltable_get(struct ifnet *ifp)
 {
-	struct lltable *llt = NULL;
+	if (ifp->if_inet6 == NULL)
+		return (NULL);
 
-	void *afdata_ptr = ifp->if_afdata[AF_INET6];
-	if (afdata_ptr != NULL)
-		llt = ((struct in6_ifextra *)afdata_ptr)->lltable;
-	return (llt);
+	return (ifp->if_inet6->lltable);
 }
 
-void *
-in6_domifattach(struct ifnet *ifp)
+void
+in6_ifarrival(void *arg __unused, struct ifnet *ifp)
 {
 	struct in6_ifextra *ext;
 
@@ -2587,8 +2580,8 @@ in6_domifattach(struct ifnet *ifp)
 	switch (ifp->if_type) {
 	case IFT_PFLOG:
 	case IFT_PFSYNC:
-	case IFT_USB:
-		return (NULL);
+		ifp->if_inet6 = NULL;
+		return;
 	}
 	ext = (struct in6_ifextra *)malloc(sizeof(*ext), M_IFADDR, M_WAITOK);
 	bzero(ext, sizeof(*ext));
@@ -2610,36 +2603,15 @@ in6_domifattach(struct ifnet *ifp)
 
 	ext->mld_ifinfo = mld_domifattach(ifp);
 
-	return ext;
+	ifp->if_inet6 = ext;
 }
+EVENTHANDLER_DEFINE(ifnet_arrival_event, in6_ifarrival, NULL,
+    EVENTHANDLER_PRI_ANY);
 
-int
-in6_domifmtu(struct ifnet *ifp)
+uint32_t
+in6_ifmtu(struct ifnet *ifp)
 {
-	if (ifp->if_afdata[AF_INET6] == NULL)
-		return ifp->if_mtu;
-
 	return (IN6_LINKMTU(ifp));
-}
-
-void
-in6_domifdetach(struct ifnet *ifp, void *aux)
-{
-	struct in6_ifextra *ext = (struct in6_ifextra *)aux;
-
-	MPASS(ifp->if_afdata[AF_INET6] == NULL);
-
-	mld_domifdetach(ifp);
-	scope6_ifdetach(ext->scope6_id);
-	nd6_ifdetach(ifp, ext->nd_ifinfo);
-	lltable_free(ext->lltable);
-	COUNTER_ARRAY_FREE(ext->in6_ifstat,
-	    sizeof(struct in6_ifstat) / sizeof(uint64_t));
-	free(ext->in6_ifstat, M_IFADDR);
-	COUNTER_ARRAY_FREE(ext->icmp6_ifstat,
-	    sizeof(struct icmp6_ifstat) / sizeof(uint64_t));
-	free(ext->icmp6_ifstat, M_IFADDR);
-	free(ext, M_IFADDR);
 }
 
 /*
@@ -2743,13 +2715,13 @@ in6_purge_proxy_ndp(struct ifnet *ifp)
 	struct lltable *llt;
 	bool need_purge;
 
-	if (ifp->if_afdata[AF_INET6] == NULL)
+	if (ifp->if_inet6 == NULL)
 		return;
 
 	llt = LLTABLE6(ifp);
-	IF_AFDATA_WLOCK(ifp);
+	LLTABLE_LOCK(llt);
 	need_purge = ((llt->llt_flags & LLT_ADDEDPROXY) != 0);
-	IF_AFDATA_WUNLOCK(ifp);
+	LLTABLE_UNLOCK(llt);
 
 	/*
 	 * Ever added proxy ndp entries, leave solicited node multicast
