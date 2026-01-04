@@ -6,6 +6,7 @@
 *.so
 *.sw[nop]
 *~
+.python-version
 _.tinderbox.*
 _.universe-toolchain
 _.amd64.*
