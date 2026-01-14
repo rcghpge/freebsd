@@ -2,6 +2,17 @@ lock-version = "1.0"
 created-by = "pip"
 
 [[packages]]
+name = "absl-py"
+version = "2.3.1"
+
+[[packages.wheels]]
+name = "absl_py-2.3.1-py3-none-any.whl"
+url = "https://files.pythonhosted.org/packages/8f/aa/ba0014cc4659328dc818a28827be78e6d97312ab0cb98105a770924dc11e/absl_py-2.3.1-py3-none-any.whl"
+
+[packages.wheels.hashes]
+sha256 = "eeecf07f0c2a93ace0772c92e596ace6d3d3996c042b2128459aaae2a76de11d"
+
+[[packages]]
 name = "anyio"
 version = "4.12.1"
 
@@ -112,6 +123,17 @@ url = "https://files.pythonhosted.org/packages/cd/3a/577b549de0cc09d95f11087ee63
 sha256 = "fe10ec77c93ddf3d13a73b035abaac7a9f5e436513864ccdad516693213c65d6"
 
 [[packages]]
+name = "blinker"
+version = "1.9.0"
+
+[[packages.wheels]]
+name = "blinker-1.9.0-py3-none-any.whl"
+url = "https://files.pythonhosted.org/packages/10/cb/f2ad4230dc2eb1a74edf38f1a38b9b52277f75bef262d8908e60d957e13c/blinker-1.9.0-py3-none-any.whl"
+
+[packages.wheels.hashes]
+sha256 = "ba0efaa9080b619ff2f3459d1d500c57bddea4a6b424b60a91141db6fd2f08bc"
+
+[[packages]]
 name = "capstone"
 
 [packages.directory]
@@ -150,6 +172,17 @@ url = "https://files.pythonhosted.org/packages/0a/4c/925909008ed5a988ccbb72dcc89
 
 [packages.wheels.hashes]
 sha256 = "7a32c560861a02ff789ad905a2fe94e3f840803362c84fecf1851cb4cf3dc37f"
+
+[[packages]]
+name = "click"
+version = "8.3.1"
+
+[[packages.wheels]]
+name = "click-8.3.1-py3-none-any.whl"
+url = "https://files.pythonhosted.org/packages/98/78/01c019cdb5d6498122777c1a43056ebb3ebfeef2076d9d026bfe15583b2b/click-8.3.1-py3-none-any.whl"
+
+[packages.wheels.hashes]
+sha256 = "981153a64e25f12d547d3426c367a4857371575ee7ad18df2a6183ab0545b2a6"
 
 [[packages]]
 name = "comm"
@@ -240,6 +273,17 @@ url = "https://files.pythonhosted.org/packages/cb/a8/20d0723294217e47de6d9e2e40f
 sha256 = "1c797122d0a86c5cace2e54bf4e819c36223b552017172f32c5c024a6b77e463"
 
 [[packages]]
+name = "flask"
+version = "3.1.2"
+
+[[packages.wheels]]
+name = "flask-3.1.2-py3-none-any.whl"
+url = "https://files.pythonhosted.org/packages/ec/f9/7f9263c5695f4bd0023734af91bedb2ff8209e8de6ead162f35d8dc762fd/flask-3.1.2-py3-none-any.whl"
+
+[packages.wheels.hashes]
+sha256 = "ca1d8112ec8a6158cc29ea4858963350011b5c846a414cdb7a954aa9e967d03c"
+
+[[packages]]
 name = "fonttools"
 version = "4.61.1"
 
@@ -271,6 +315,17 @@ url = "https://files.pythonhosted.org/packages/04/4b/29cac41a4d98d144bf5f6d33995
 
 [packages.wheels.hashes]
 sha256 = "63cf8bbe7522de3bf65932fda1d9c2772064ffb3dae62d55932da54b31cb6c86"
+
+[[packages]]
+name = "h5py"
+version = "3.15.1"
+
+[packages.sdist]
+name = "h5py-3.15.1.tar.gz"
+url = "https://files.pythonhosted.org/packages/4d/6a/0d79de0b025aa85dc8864de8e97659c94cf3d23148394a954dc5ca52f8c8/h5py-3.15.1.tar.gz"
+
+[packages.sdist.hashes]
+sha256 = "c86e3ed45c4473564de55aa83b6fc9e5ead86578773dfbd93047380042e26b69"
 
 [[packages]]
 name = "httpcore"
@@ -348,6 +403,17 @@ url = "https://files.pythonhosted.org/packages/7b/55/e5326141505c5d5e34c5e0935d2
 
 [packages.wheels.hashes]
 sha256 = "b2904c2a4228c3d44f409c8ae8e2370eb21a26f7ac2ec5446df141dde3452042"
+
+[[packages]]
+name = "itsdangerous"
+version = "2.2.0"
+
+[[packages.wheels]]
+name = "itsdangerous-2.2.0-py3-none-any.whl"
+url = "https://files.pythonhosted.org/packages/04/96/92447566d16df59b2a776c0fb82dbc4d9e07cd95062562af01e408583fc4/itsdangerous-2.2.0-py3-none-any.whl"
+
+[packages.wheels.hashes]
+sha256 = "c6242fc49e35958c8b15141343aa660db5fc54d4f13a1db01a3f5891b98700ef"
 
 [[packages]]
 name = "jedi"
@@ -537,6 +603,17 @@ url = "https://files.pythonhosted.org/packages/ab/b5/36c712098e6191d1b4e349304ef
 sha256 = "45fa36d9c6422cf2559198e4db481aa243c7a32d9926b500781c830c80f7ecf8"
 
 [[packages]]
+name = "keras"
+version = "3.13.0"
+
+[[packages.wheels]]
+name = "keras-3.13.0-py3-none-any.whl"
+url = "https://files.pythonhosted.org/packages/15/d2/c6734cbf15288d75722ed3eb9d8ebf9204e48379c08160fd40fcd58a0c8b/keras-3.13.0-py3-none-any.whl"
+
+[packages.wheels.hashes]
+sha256 = "096793e2be6230816f3f7e030370e66c0f4a89707c59bf2d8fad3ca33869bd1c"
+
+[[packages]]
 name = "kiwisolver"
 version = "1.4.9"
 
@@ -557,6 +634,17 @@ url = "https://files.pythonhosted.org/packages/82/3d/14ce75ef66813643812f3093ab1
 
 [packages.wheels.hashes]
 sha256 = "c629b661023a014c37da873b4ff58a817398d12635d3bbb2c5a03be7fe5d1e12"
+
+[[packages]]
+name = "markdown-it-py"
+version = "4.0.0"
+
+[[packages.wheels]]
+name = "markdown_it_py-4.0.0-py3-none-any.whl"
+url = "https://files.pythonhosted.org/packages/94/54/e7d793b573f298e1c9013b8c4dade17d481164aa517d1d7148619c2cedbf/markdown_it_py-4.0.0-py3-none-any.whl"
+
+[packages.wheels.hashes]
+sha256 = "87327c59b172c5011896038353a81343b6754500a08cd7a4973bb48c6d578147"
 
 [[packages]]
 name = "markupsafe"
@@ -592,6 +680,17 @@ url = "https://files.pythonhosted.org/packages/af/33/ee4519fa02ed11a94aef9559552
 sha256 = "d56ce5156ba6085e00a9d54fead6ed29a9c47e215cd1bba2e976ef39f5710a76"
 
 [[packages]]
+name = "mdurl"
+version = "0.1.2"
+
+[[packages.wheels]]
+name = "mdurl-0.1.2-py3-none-any.whl"
+url = "https://files.pythonhosted.org/packages/b3/38/89ba8ad64ae25be8de66a6d463314cf1eb366222074cfda9ee839c56a4b4/mdurl-0.1.2-py3-none-any.whl"
+
+[packages.wheels.hashes]
+sha256 = "84008a41e51615a49fc9966191ff91509e3c40b939176e643fd50a5c2196b8f8"
+
+[[packages]]
 name = "mistune"
 version = "3.2.0"
 
@@ -601,6 +700,28 @@ url = "https://files.pythonhosted.org/packages/9b/f7/4a5e785ec9fbd65146a27b6b70b
 
 [packages.wheels.hashes]
 sha256 = "febdc629a3c78616b94393c6580551e0e34cc289987ec6c35ed3f4be42d0eee1"
+
+[[packages]]
+name = "ml-dtypes"
+version = "0.5.4"
+
+[packages.sdist]
+name = "ml_dtypes-0.5.4.tar.gz"
+url = "https://files.pythonhosted.org/packages/0e/4a/c27b42ed9b1c7d13d9ba8b6905dece787d6259152f2309338aed29b2447b/ml_dtypes-0.5.4.tar.gz"
+
+[packages.sdist.hashes]
+sha256 = "8ab06a50fb9bf9666dd0fe5dfb4676fa2b0ac0f31ecff72a6c3af8e22c063453"
+
+[[packages]]
+name = "namex"
+version = "0.1.0"
+
+[[packages.wheels]]
+name = "namex-0.1.0-py3-none-any.whl"
+url = "https://files.pythonhosted.org/packages/b2/bc/465daf1de06409cdd4532082806770ee0d8d7df434da79c76564d0f69741/namex-0.1.0-py3-none-any.whl"
+
+[packages.wheels.hashes]
+sha256 = "e2012a474502f1e2251267062aae3114611f07df4224b6e06334c57b0f2ce87c"
 
 [[packages]]
 name = "narwhals"
@@ -678,6 +799,17 @@ url = "https://files.pythonhosted.org/packages/24/62/ae72ff66c0f1fd959925b4c11f8
 
 [packages.sdist.hashes]
 sha256 = "a1ceafc5042451a858231588a104093474c6a5c57dcc724841f5c888d237d690"
+
+[[packages]]
+name = "optree"
+version = "0.18.0"
+
+[packages.sdist]
+name = "optree-0.18.0.tar.gz"
+url = "https://files.pythonhosted.org/packages/83/8e/09d899ad531d50b79aa24e7558f604980fe4048350172e643bb1b9983aec/optree-0.18.0.tar.gz"
+
+[packages.sdist.hashes]
+sha256 = "3804fb6ddc923855db2dc4805b4524c66e00f1ef30b166be4aadd52822b13e06"
 
 [[packages]]
 name = "overrides"
@@ -977,6 +1109,17 @@ url = "https://files.pythonhosted.org/packages/7e/71/44ce230e1b7fadd372515a97e32
 sha256 = "6c3d97604e4c5ce9f714898e05401a0445a641cfa276432b0a648c80856f6a3f"
 
 [[packages]]
+name = "rich"
+version = "14.2.0"
+
+[[packages.wheels]]
+name = "rich-14.2.0-py3-none-any.whl"
+url = "https://files.pythonhosted.org/packages/25/7a/b0178788f8dc6cafce37a212c99565fa1fe7872c70c6c9c1e1a372d9d88f/rich-14.2.0-py3-none-any.whl"
+
+[packages.wheels.hashes]
+sha256 = "76bc51fe2e57d2b1be1f96c524b890b816e334ab4c1e45888799bfaab0021edd"
+
+[[packages]]
 name = "rpds-py"
 version = "0.30.0"
 
@@ -1217,6 +1360,17 @@ url = "https://files.pythonhosted.org/packages/34/db/b10e48aa8fff7407e67470363ea
 
 [packages.wheels.hashes]
 sha256 = "af248a825037ef591efbf6ed20cc5faa03d3b47b9e5a2230a529eeee1c1fc3ef"
+
+[[packages]]
+name = "werkzeug"
+version = "3.1.5"
+
+[[packages.wheels]]
+name = "werkzeug-3.1.5-py3-none-any.whl"
+url = "https://files.pythonhosted.org/packages/ad/e4/8d97cca767bcc1be76d16fb76951608305561c6e056811587f36cb1316a8/werkzeug-3.1.5-py3-none-any.whl"
+
+[packages.wheels.hashes]
+sha256 = "5111e36e91086ece91f93268bb39b4a35c1e6f1feac762c9c822ded0a4e322dc"
 
 [[packages]]
 name = "xgboost"
