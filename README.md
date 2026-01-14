@@ -1,4 +1,4 @@
-FreeBSD Source Tree
+FreeBSD Source
 ==============
 [![Homepage](https://github.com/rcghpge/freebsd/actions/workflows/homepage.yml/badge.svg)](https://github.com/rcghpge/freebsd/actions/workflows/homepage.yml)
 [![Potatobot](https://github.com/rcghpge/freebsd/actions/workflows/potatobot.yml/badge.svg)](https://github.com/rcghpge/freebsd/actions/workflows/potatobot.yml)
