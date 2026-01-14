@@ -33,5 +33,7 @@ sys/*/compile
 /src.conf
 
 # FreeBSD Development Branch
+capstone/
 venv/
 *.egg-info
+
