@@ -2,9 +2,9 @@
 Homepage = "https://github.com/rcghpge/freebsd/capstone"
 
 [project]
-name = "tbd"
+name = "capstone"
 version = "0.2.0"
-description = "Project name TBD. Data science research project. FreeBSD development branch. University of Texas at Arlington."
+description = "Machine learning utilizing key health indicators for infant mortality rate prediction. University of Texas at Arlington."
 authors = [
   { name = "Robert Cocker"}, 
   { email = "rcocker87@gmail.com"}
@@ -26,7 +26,6 @@ dependencies = [
     "jupyterlab-widgets",
     "fonttools>=4.61.0", 
     "urllib3>=2.6.0",
-    "flask>=3.1.2",
     "keras>=3.13.0"
 ]
 
