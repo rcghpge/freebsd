@@ -1,14 +1,20 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
 [project.urls]
-Homepage = "https://github.com/rcghpge/freebsd/capstone"
+Homepage = "https://github.com/rcghpge/capstone"
 
 [project]
 name = "capstone"
-version = "0.2.0"
+version = "0.3.0"
 description = "Machine learning utilizing key health indicators for infant mortality rate prediction. University of Texas at Arlington."
 authors = [
   { name = "Robert Cocker"}, 
   { email = "rcocker87@gmail.com"}
 ]
+license = "BSD-3-Clause OR MIT"
+license-files = ["LICENSE"]
 readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [
@@ -37,6 +43,6 @@ dev = [
     "pre-commit", "jupyterlab-lsp",
     "pip-tools", "build>=1.4.0"
 ]
-freebsd-dev = ["-r freebsd-pylock.toml"]
-linux-dev = ["-r linux-pylock.toml"] 
+# freebsd-dev = ["-r pylock.freebsd.toml"]
+# linux-dev = ["-r linux-pylock.toml"] 
 
