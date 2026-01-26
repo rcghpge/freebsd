@@ -99,7 +99,6 @@ __DEFAULT_YES_OPTIONS = \
     FINGER \
     FLOPPY \
     FORTH \
-    FP_LIBC \
     FREEBSD_UPDATE \
     FTP \
     GAMES \
@@ -172,6 +171,7 @@ __DEFAULT_YES_OPTIONS = \
     SERVICESDB \
     SETUID_LOGIN \
     SHAREDOCS \
+    SOUND \
     SOURCELESS \
     SOURCELESS_HOST \
     SOURCELESS_UCODE \
@@ -498,6 +498,11 @@ MK_CLANG_EXTRAS:= no
 MK_CLANG_FORMAT:= no
 MK_CLANG_FULL:= no
 MK_LLVM_COV:= no
+.endif
+
+# CUSE is needed only by virtual_oss, but virtual_oss is part of MK_SOUND.
+.if ${MK_CUSE} == "no"
+MK_SOUND:= no
 .endif
 
 .if ${MK_ASAN} == "yes"
