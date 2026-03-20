@@ -223,9 +223,6 @@ contrib/openzfs/module/os/freebsd/zfs/zfs_znode_os.c		optional zfs compile-with 
 contrib/openzfs/module/os/freebsd/zfs/zio_crypt.c		optional zfs compile-with "${ZFS_C}"
 contrib/openzfs/module/os/freebsd/zfs/zvol_os.c		optional zfs compile-with "${ZFS_C}"
 
-#zfs unicode support
-contrib/openzfs/module/unicode/u8_textprep.c		optional zfs compile-with "${ZFS_C}"
-
 #zfs checksums / zcommon
 contrib/openzfs/module/zcommon/cityhash.c		optional zfs compile-with "${ZFS_C}"
 contrib/openzfs/module/zcommon/zfeature_common.c		optional zfs compile-with "${ZFS_C}"
@@ -326,6 +323,7 @@ contrib/openzfs/module/zfs/spa_stats.c		optional zfs compile-with "${ZFS_C}"
 contrib/openzfs/module/zfs/space_map.c		optional zfs compile-with "${ZFS_C}"
 contrib/openzfs/module/zfs/space_reftree.c		optional zfs compile-with "${ZFS_C}"
 contrib/openzfs/module/zfs/txg.c		optional zfs compile-with "${ZFS_C}"
+contrib/openzfs/module/zfs/u8_textprep.c           optional zfs compile-with "${ZFS_C}"
 contrib/openzfs/module/zfs/uberblock.c		optional zfs compile-with "${ZFS_C}"
 contrib/openzfs/module/zfs/unique.c		optional zfs compile-with "${ZFS_C}"
 contrib/openzfs/module/zfs/vdev.c		optional zfs compile-with "${ZFS_C}"
