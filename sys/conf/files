@@ -3209,6 +3209,7 @@ dev/sound/midi/mpu401.c		optional sound
 dev/sound/midi/mpu_if.m		optional sound
 dev/sound/midi/mpufoi_if.m	optional sound
 dev/sound/sndstat.c		optional sound
+dev/sound/dummy.c		optional snd_dummy sound
 dev/spibus/acpi_spibus.c	optional acpi spibus
 dev/spibus/ofw_spibus.c		optional fdt spibus
 dev/spibus/spibus.c		optional spibus				\
@@ -3284,10 +3285,11 @@ dev/uart/uart_tty.c		optional uart
 # Universal Flash Storage Host Controller Interface drivers
 #
 dev/ufshci/ufshci.c		optional ufshci
+dev/ufshci/ufshci_acpi.c	optional ufshci acpi
 dev/ufshci/ufshci_ctrlr.c	optional ufshci
 dev/ufshci/ufshci_ctrlr_cmd.c	optional ufshci
 dev/ufshci/ufshci_dev.c		optional ufshci
-dev/ufshci/ufshci_pci.c		optional ufshci
+dev/ufshci/ufshci_pci.c		optional ufshci pci
 dev/ufshci/ufshci_req_queue.c	optional ufshci
 dev/ufshci/ufshci_req_sdb.c	optional ufshci
 dev/ufshci/ufshci_sim.c		optional ufshci
@@ -4244,8 +4246,8 @@ net/debugnet_inet.c		optional inet debugnet
 net/pfil.c			optional ether | inet
 net/radix.c			standard
 net/route.c			standard
-net/route/nhgrp.c		optional route_mpath
-net/route/nhgrp_ctl.c		optional route_mpath
+net/route/nhgrp.c		standard
+net/route/nhgrp_ctl.c		standard
 net/route/nhop.c		standard
 net/route/nhop_ctl.c		standard
 net/route/nhop_utils.c		standard
@@ -4261,7 +4263,7 @@ net/route/route_temporal.c	standard
 net/rss_config.c		standard
 net/rtsock.c			standard
 net/slcompress.c		optional netgraph_vjc
-net/toeplitz.c			optional inet | inet6 | route_mpath
+net/toeplitz.c			optional inet | inet6
 net/vnet.c			optional vimage
 net80211/ieee80211.c		optional wlan
 net80211/ieee80211_acl.c	optional wlan wlan_acl
