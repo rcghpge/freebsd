@@ -2,7 +2,6 @@ FreeBSD Source
 ==============
 [![Homepage](https://github.com/rcghpge/freebsd/actions/workflows/homepage.yml/badge.svg)](https://github.com/rcghpge/freebsd/actions/workflows/homepage.yml)
 [![Potatobot](https://github.com/rcghpge/freebsd/actions/workflows/potatobot.yml/badge.svg)](https://github.com/rcghpge/freebsd/actions/workflows/potatobot.yml)
-[![Dependabot](https://github.com/rcghpge/freebsd/actions/workflows/dependabot/dependabot-updates/badge.svg)](https://github.com/rcghpge/freebsd/actions/workflows/dependabot/dependabot-updates)
 [![CodeQL](https://github.com/rcghpge/freebsd/actions/workflows/github-code-scanning/codeql/badge.svg)](https://github.com/rcghpge/freebsd/actions/workflows/github-code-scanning/codeql)
 [![Cross-build Kernel](https://github.com/rcghpge/freebsd/actions/workflows/cross-bootstrap-tools.yml/badge.svg)](https://github.com/rcghpge/freebsd/actions/workflows/cross-bootstrap-tools.yml)
 [![Bandit](https://github.com/rcghpge/freebsd/actions/workflows/bandit.yml/badge.svg)](https://github.com/rcghpge/freebsd/actions/workflows/bandit.yml)
