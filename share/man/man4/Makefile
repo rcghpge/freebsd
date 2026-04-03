@@ -624,6 +624,7 @@ MAN=	aac.4 \
 	virtio_random.4 \
 	virtio_scsi.4 \
 	${_vmci.4} \
+	vmgenc.4 \
 	vkbd.4 \
 	vlan.4 \
 	vxlan.4 \
@@ -1054,11 +1055,11 @@ MAN+=		mlx5io.4
 .endif
 
 .if ${MK_TESTS} != "no"
-MANGROUPS+=	TESTS
-ATF=            ${SRCTOP}/contrib/atf
-.PATH:          ${ATF}/doc
-TESTS=		atf-test-case.4
-TESTSPACKAGE=	tests
+MANGROUPS+=	ATF
+ATFTOP=		${SRCTOP}/contrib/atf
+.PATH:          ${ATFTOP}/doc
+ATF=		atf-test-case.4
+ATFPACKAGE=	atf
 .endif
 
 .if ${MK_PF} != "no"
