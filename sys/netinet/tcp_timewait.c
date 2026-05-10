@@ -32,11 +32,15 @@
 #include "opt_inet.h"
 #include "opt_inet6.h"
 #include "opt_ipsec.h"
+#include "opt_kern_tls.h"
 
 #include <sys/param.h>
 #include <sys/systm.h>
 #include <sys/callout.h>
 #include <sys/kernel.h>
+#ifdef KERN_TLS
+#include <sys/ktls.h>
+#endif
 #include <sys/sysctl.h>
 #include <sys/malloc.h>
 #include <sys/mbuf.h>
@@ -132,6 +136,12 @@ tcp_twstart(struct tcpcb *tp)
 	tcp_free_sackholes(tp);
 	soisdisconnected(inp->inp_socket);
 
+#ifdef KERN_TLS
+	/* release ktls snd tag now that no more data can be sent */
+	if (tptosocket(tp)->so_snd.sb_tls_info != NULL) {
+		ktls_release_snd_tag(tptosocket(tp)->so_snd.sb_tls_info);
+	}
+#endif
 	if (tp->t_flags & TF_ACKNOW)
 		(void) tcp_output(tp);
 
@@ -215,12 +225,17 @@ tcp_twcheck(struct inpcb *inp, struct tcpopt *to, struct tcphdr *th,
 	/*
 	 * If a new connection request is received
 	 * while in TIME_WAIT, drop the old connection
-	 * and start over if the sequence numbers
-	 * are above the previous ones.
+	 * and start over if allowed by RFC 6191.
 	 * Allow UDP port number changes in this case.
 	 */
 	if (((thflags & (TH_SYN | TH_ACK)) == TH_SYN) &&
-	    SEQ_GT(th->th_seq, tp->rcv_nxt)) {
+	    ((((tp->t_flags & TF_RCVD_TSTMP) != 0) &&
+	      ((to->to_flags & TOF_TS) != 0) &&
+	      TSTMP_LT(tp->ts_recent, to->to_tsval)) ||
+	     (((tp->t_flags & TF_RCVD_TSTMP) == 0) &&
+	      ((to->to_flags & TOF_TS) != 0) &&
+	      (V_tcp_tolerate_missing_ts == 0)) ||
+	     SEQ_GT(th->th_seq, tp->rcv_nxt))) {
 		/*
 		 * In case we can't upgrade our lock just pretend we have
 		 * lost this packet.
