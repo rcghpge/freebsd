@@ -81,13 +81,23 @@ jobs:
       - name: Merge updates from source tree
         run: |
           set -euo pipefail
+
           if git merge --no-edit --no-ff upstream/main; then
             echo "Merge completed (or nothing to merge)."
-          else
-            echo "Merge reported conflicts. Aborting to keep repo clean."
+            exit 0
+          fi
+
+          if git diff --name-only --diff-filter=U | grep -v -q '^README.md$'; then
+            echo "Non-README conflicts detected. Aborting to keep repo clean."
             git merge --abort || true
             exit 1
           fi
+
+          # If only README.md is conflicted, set fork version 
+          git checkout --ours README.md
+          git add README.md
+          git commit -m "Merge upstream/main, keeping fork README.md"
+          echo "Merge completed with fork README.md preserved."
 
       - name: Push updates to fork (only on latest updates)
         env:
