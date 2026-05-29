@@ -217,7 +217,7 @@ dump_rc_nhg(struct nl_writer *nw, const struct route_nhop_data *rnd, struct rtms
 			return;
 		rtnh->rtnh_flags = 0;
 		rtnh->rtnh_ifindex = if_getindex(wn[i].nh->nh_ifp);
-		rtnh->rtnh_hops = wn[i].weight;
+		rtnh->rtnh_hops = MIN(wn[i].weight, UINT8_MAX);
 		dump_rc_nhop_gw(nw, wn[i].nh);
 		uint32_t rtflags = nhop_get_rtflags(wn[i].nh);
 		if (rtflags != base_rtflags)
@@ -242,7 +242,8 @@ dump_rc_nhg(struct nl_writer *nw, const struct route_nhop_data *rnd, struct rtms
 	}
 	nlattr_set_len(nw, off);
 	nlattr_add_u32(nw, NL_RTA_PRIORITY, nhop_metric);
-	nlattr_add_u32(nw, NL_RTA_WEIGHT, nhop_weight);
+	if (nhop_weight != RT_DEFAULT_WEIGHT)
+		nlattr_add_u32(nw, NL_RTA_WEIGHT, nhop_weight);
 }
 
 static void
@@ -726,7 +727,7 @@ handle_rtm_dump(struct nlpcb *nlp, uint32_t fibnum, int family,
 
 	if (fibnum == RT_TABLE_UNSPEC) {
 		for (int i = 0; i < V_rt_numfibs; i++) {
-			dump_rtable_fib(&wa, fibnum, family);
+			dump_rtable_fib(&wa, i, family);
 			if (wa.error != 0)
 				break;
 		}
@@ -896,6 +897,10 @@ create_nexthop_from_attrs(struct nl_parsed_route *attrs,
 		int num_nhops = attrs->rta_multipath->num_nhops;
 		struct weightened_nhop *wn = npt_alloc(npt, sizeof(*wn) * num_nhops);
 
+		if (wn == NULL) {
+			*perror = ENOMEM;
+			return (NULL);
+		}
 		for (int i = 0; i < num_nhops; i++) {
 			struct rta_mpath_nh *mpnh = &attrs->rta_multipath->nhops[i];
 
