@@ -177,6 +177,7 @@ MAN=	aac.4 \
 	ffs.4 \
 	filemon.4 \
 	firewire.4 \
+	fwcam.4 \
 	${_ftgpio.4} \
 	${_ftwd.4} \
 	full.4 \
@@ -438,6 +439,7 @@ MAN=	aac.4 \
 	${_ntb_hw_intel.4} \
 	${_ntb_hw_plx.4} \
 	${_ntb_transport.4} \
+	ntsync.4 \
 	${_nda.4} \
 	${_if_ntb.4} \
 	null.4 \
