@@ -179,6 +179,7 @@ MAN=	aac.4 \
 	filemon.4 \
 	firewire.4 \
 	fwcam.4 \
+	fwdv.4 \
 	fwisound.4 \
 	${_ftgpio.4} \
 	${_ftwd.4} \
@@ -212,6 +213,7 @@ MAN=	aac.4 \
 	hidbus.4 \
 	hidquirk.4 \
 	hidraw.4 \
+	hidwacom.4 \
 	hkbd.4 \
 	hms.4 \
 	hmt.4 \
@@ -600,6 +602,7 @@ MAN=	aac.4 \
 	tarfs.4 \
 	targ.4 \
 	tcp.4 \
+	tcp_bblog.4 \
 	tcp_bbr.4 \
 	tcp_rack.4 \
 	tdfx.4 \
