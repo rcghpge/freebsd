@@ -335,6 +335,22 @@ procdesc_jobstate(struct proc *p)
 	wakeup(&p->p_procdesc);
 }
 
+void
+procdesc_fork(struct proc *p, pid_t child_pid)
+{
+	struct procdesc *pd;
+
+	PROC_LOCK(p);
+	pd = p->p_procdesc;
+	if (pd != NULL) {
+		PROCDESC_LOCK(pd);
+		pd->pd_last_child = child_pid;
+		KNOTE_LOCKED(&pd->pd_selinfo.si_note, NOTE_FORK);
+		PROCDESC_UNLOCK(pd);
+	}
+	PROC_UNLOCK(p);
+}
+
 /*
  * When a process descriptor is reaped, perhaps as a result of close(), release
  * the process's reference on the process descriptor.
@@ -477,16 +493,25 @@ static int
 procdesc_kqops_event(struct knote *kn, long hint)
 {
 	struct procdesc *pd;
+	struct proc *p;
 	u_int event;
 
 	pd = kn->kn_fp->f_data;
 	if (hint == 0) {
 		/*
 		 * Initial test after registration.  Generate notes in
-		 * case the process already terminated before registration.
+		 * case the process already terminated before
+		 * registration, or is stopped, or traced, with an event
+		 * pending.
 		 */
-		event = (pd->pd_flags & PDF_EXITED) != 0 ? (NOTE_EXIT |
-		    NOTE_PDSIGCHLD) : 0;
+		p = pd->pd_proc;
+		if ((pd->pd_flags & PDF_EXITED) != 0)
+			event = NOTE_EXIT | NOTE_PDSIGCHLD;
+		else if ((atomic_load_int(&p->p_flag) & (P_STOPPED_SIG |
+		    P_STOPPED_TRACE)) != 0)
+			event = NOTE_PDSIGCHLD;
+		else
+			event = 0;
 	} else {
 		/* Mask off extra data. */
 		event = (u_int)hint & NOTE_PCTRLMASK;
@@ -505,6 +530,9 @@ procdesc_kqops_event(struct knote *kn, long hint)
 			kn->kn_flags |= EV_DROP;
 		return (1);
 	}
+
+	if ((kn->kn_fflags & NOTE_FORK) != 0)
+		kn->kn_data = pd->pd_last_child;
 
 	return (kn->kn_fflags != 0);
 }

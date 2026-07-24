@@ -4522,11 +4522,13 @@ lkpi_ic_vap_create(struct ieee80211com *ic, const char name[IFNAMSIZ],
 		hw->max_listen_interval = 7 * (ic->ic_lintval / ic->ic_bintval);
 	hw->conf.listen_interval = hw->max_listen_interval;
 
+	wiphy_lock(hw->wiphy);
 	/* XXX-BZ do we need to be able to update these? */
 	hw->wiphy->frag_threshold = vap->iv_fragthreshold;
 	lkpi_80211_mo_set_frag_threshold(hw, vap->iv_fragthreshold);
 	hw->wiphy->rts_threshold = vap->iv_rtsthreshold;
 	lkpi_80211_mo_set_rts_threshold(hw, vap->iv_rtsthreshold);
+	wiphy_unlock(hw->wiphy);
 	/* any others? */
 
 	/* Add per-VIF/VAP sysctls. */
@@ -6850,7 +6852,7 @@ linuxkpi_ieee80211_start_tx_ba_session(struct ieee80211_sta *sta, uint8_t tid,
 	    !sta->deflink.eht_cap.has_eht) {
 		net80211_vap_printf(lsta->ni->ni_vap, "%s: HT or later not "
 		    "supported\n", __func__);
-		return (-ENOTSUPP);
+		return (-EINVAL);
 	}
 
 #ifdef __notyet__
