@@ -124,6 +124,9 @@ proc_realparent(struct proc *child)
 	}
 	parent = __containerof(p->p_orphan.le_prev, struct proc,
 	    p_orphans.lh_first);
+	KASSERT(child->p_pptr != parent,
+	    ("proc %d %p orphaned but parent %d %p is realparent",
+	    child->p_pid, child, parent->p_pid, parent));
 	return (parent);
 }
 
@@ -680,7 +683,8 @@ exit1(struct thread *td, int rval, int signo)
 	 * exit().
 	 */
 	signal_parent = 0;
-	if (p->p_procdesc == NULL || procdesc_exit(p)) {
+	procdesc_exit(p);
+	if (p->p_procdesc == NULL) {
 		/*
 		 * Notify parent that we're gone.  If parent has the
 		 * PS_NOCLDWAIT flag set, or if the handler is set to SIG_IGN,
@@ -1054,6 +1058,7 @@ proc_reap(struct thread *td, struct proc *p, int *status, int options)
 	sx_xunlock(&proctree_lock);
 
 	PROC_LOCK(p);
+	KNOTE_LOCKED(p->p_klist, NOTE_REAP);
 	knlist_detach(p->p_klist);
 	p->p_klist = NULL;
 	PROC_UNLOCK(p);
@@ -1567,12 +1572,12 @@ kern_pdwait(struct thread *td, int fd, int *status,
 		goto exit_unlocked;
 
 	for (;;) {
+		sx_xlock(&proctree_lock);
 		/* We own a reference on the procdesc file. */
 		KASSERT(pd->pd_fpcount > 0,
 		    ("closed proc %p procdesc %p pd flags %#x",
-		    p, pd, pd->pd_flags));
+		    pd->pd_proc, pd, pd->pd_flags));
 
-		sx_xlock(&proctree_lock);
 		p = pd->pd_proc;
 		if (p == NULL) {
 			error = ESRCH;
