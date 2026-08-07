@@ -465,7 +465,7 @@ static bool	em_if_vlan_filter_capable(if_ctx_t);
 static bool	em_if_vlan_filter_used(if_ctx_t);
 static void	em_if_vlan_filter_enable(struct e1000_softc *);
 static void	em_if_vlan_filter_disable(struct e1000_softc *);
-static void	em_if_vlan_filter_write(struct e1000_softc *);
+static void	em_if_vlan_filter_write(struct e1000_softc *, int);
 static void	em_setup_vlan_hw_support(if_ctx_t ctx);
 static int	em_sysctl_nvm_info(SYSCTL_HANDLER_ARGS);
 static void	em_print_nvm_info(struct e1000_softc *);
@@ -1109,6 +1109,7 @@ em_set_num_queues(if_ctx_t ctx)
 		maxqueues = 2;
 		break;
 	case e1000_vfadapt:
+		/* Keep 82576 VFs at one RX/TX queue for mixed-driver safety. */
 	case e1000_vfadapt_i350:
 		maxqueues = 1;
 		break;
@@ -1446,6 +1447,27 @@ em_if_attach_pre(if_ctx_t ctx)
 	em_setup_msix(ctx);
 	e1000_get_bus_info(hw);
 
+	/*
+	 * Some conventional PCI systems hang when e1000 devices use
+	 * DMA addresses above 4 GB.  Keep PCI-mode DMA below that boundary
+	 * by default; PCI-X and PCIe retain 64-bit DMA.
+	 */
+	if (hw->bus.type == e1000_bus_type_pci) {
+		SYSCTL_ADD_BOOL(ctx_list, child, OID_AUTO, "allow_64bit_dma",
+		    CTLFLAG_RDTUN, &sc->allow_64bit_dma, 0,
+		    "Allow 64-bit DMA in conventional PCI mode");
+		if (sc->allow_64bit_dma)
+			device_printf(dev, "64-bit DMA in conventional PCI mode.  "
+			    "Some chipsets are unstable.\n");
+		else {
+			scctx->isc_dma_width = 32;
+			device_printf(dev, "32-bit DMA in conventional PCI mode.  "
+			    "Set dev.%s.%d.allow_64bit_dma=1 at boot to enable "
+			    "64-bit DMA if the chipset is stable with it.\n",
+			    device_get_name(dev), device_get_unit(dev));
+		}
+	}
+
 	/* Set up some sysctls for the tunable interrupt delays */
 	if (hw->mac.type < igb_mac_min) {
 		em_add_int_delay_sysctl(sc, "rx_int_delay",
@@ -1717,8 +1739,6 @@ em_if_resume(if_ctx_t ctx)
 
 	if (sc->hw.mac.type == e1000_pch2lan)
 		e1000_resume_workarounds_pchlan(&sc->hw);
-	em_if_init(ctx);
-	em_init_manageability(sc);
 
 	return(0);
 }
@@ -2418,8 +2438,6 @@ em_if_media_change(if_ctx_t ctx)
 	default:
 		device_printf(sc->dev, "Unsupported media type\n");
 	}
-
-	em_if_init(ctx);
 
 	return (0);
 }
@@ -4610,7 +4628,7 @@ em_if_vlan_register(if_ctx_t ctx, u16 vtag)
 		if (igb_iov_enabled(sc))
 			igb_iov_rebuild_vlan(sc);
 		else
-			em_if_vlan_filter_write(sc);
+			em_if_vlan_filter_write(sc, index);
 	}
 }
 
@@ -4645,7 +4663,7 @@ em_if_vlan_unregister(if_ctx_t ctx, u16 vtag)
 		if (igb_iov_enabled(sc))
 			igb_iov_rebuild_vlan(sc);
 		else
-			em_if_vlan_filter_write(sc);
+			em_if_vlan_filter_write(sc, index);
 	}
 }
 
@@ -4700,7 +4718,7 @@ em_if_vlan_filter_disable(struct e1000_softc *sc)
 }
 
 static void
-em_if_vlan_filter_write(struct e1000_softc *sc)
+em_if_vlan_filter_write(struct e1000_softc *sc, int changed_index)
 {
 	struct e1000_hw *hw = &sc->hw;
 
@@ -4710,8 +4728,13 @@ em_if_vlan_filter_write(struct e1000_softc *sc)
 	if (hw->mac.type < em_mac_min)
 		em_if_intr_disable(sc->ctx);
 
+	/*
+	 * Restore every retained VLAN after reset.  Also write the changed
+	 * word when its final VLAN was removed so stale hardware membership
+	 * does not survive a zero shadow value.
+	 */
 	for (int i = 0; i < EM_VFTA_SIZE; i++)
-		if (sc->shadow_vfta[i] != 0)
+		if (sc->shadow_vfta[i] != 0 || i == changed_index)
 			e1000_write_vfta(hw, i, sc->shadow_vfta[i]);
 
 	/* Re-enable interrupts for lem-class devices */
@@ -4850,6 +4873,7 @@ igb_if_intr_enable(if_ctx_t ctx)
 		E1000_WRITE_REG(hw, E1000_EIAC, reg | mask);
 		reg = E1000_READ_REG(hw, E1000_EIAM);
 		E1000_WRITE_REG(hw, E1000_EIAM, reg | mask);
+		igb_iov_intr_drain_stale(sc);
 		E1000_WRITE_REG(hw, E1000_EIMS, mask);
 		E1000_WRITE_REG(hw, E1000_IMS,
 		    E1000_IMS_LSC | igb_iov_intr_mask(sc));
@@ -6378,6 +6402,16 @@ em_set_flowcntl(SYSCTL_HANDLER_ARGS)
 	return (error);
 }
 
+static void
+em_sysctl_request_reinit(struct e1000_softc *sc)
+{
+	if ((if_getflags(iflib_get_ifp(sc->ctx)) & IFF_UP) == 0)
+		return;
+
+	iflib_request_reset(sc->ctx);
+	iflib_admin_intr_deferred(sc->ctx);
+}
+
 /*
  * Manage DMA Coalesce:
  * Control values:
@@ -6423,7 +6457,7 @@ igb_sysctl_dmac(SYSCTL_HANDLER_ARGS)
 			return (EINVAL);
 	}
 	/* Reinit the interface */
-	em_if_init(sc->ctx);
+	em_sysctl_request_reinit(sc);
 	return (error);
 }
 
@@ -6449,7 +6483,7 @@ em_sysctl_eee(SYSCTL_HANDLER_ARGS)
 		sc->hw.dev_spec.ich8lan.eee_disable = (value != 0);
 	else
 		sc->hw.dev_spec._82575.eee_disable = (value != 0);
-	em_if_init(sc->ctx);
+	em_sysctl_request_reinit(sc);
 
 	return (0);
 }

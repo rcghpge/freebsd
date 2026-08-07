@@ -49,6 +49,8 @@
 #include <atf-c.h>
 #include <kvm.h>
 
+#include "freebsd_test_suite/macros.h"
+
 /* Tests for procdesc(4) that aren't specific to any one syscall */
 
 /*
@@ -348,6 +350,8 @@ ATF_TC_BODY(pdopenpid_capmode, tc)
 {
 	pid_t child, parent;
 
+	ATF_REQUIRE_FEATURE("security_capability_mode");
+
 	parent = getpid();
 	child = fork();
 	ATF_REQUIRE_MSG(child >= 0, "fork: %s", strerror(errno));
@@ -547,8 +551,10 @@ ATF_TC_BODY(pdopenpid_pdwait_only_one, tc)
 	    "pdwait(fd1): %s", strerror(errno));
 	ATF_REQUIRE(WIFEXITED(status) && WEXITSTATUS(status) == 42);
 
-	/* The second fd should no longer be able to collect. */
-	ATF_REQUIRE_ERRNO(ESRCH, pdwait(fd2, &status, WEXITED, NULL, NULL) < 0);
+	/* The second fd should be able to collect as well. */
+	ATF_REQUIRE_MSG(pdwait(fd2, &status, WEXITED, NULL, NULL) == 0,
+	    "pdwait(fd2): %s", strerror(errno));
+	ATF_REQUIRE(WIFEXITED(status) && WEXITSTATUS(status) == 42);
 
 	ATF_REQUIRE(close(fd1) == 0);
 	ATF_REQUIRE(close(fd2) == 0);
