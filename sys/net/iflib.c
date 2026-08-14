@@ -178,12 +178,14 @@ struct iflib_ctx {
 	uint32_t ifc_rx_mbuf_sz;
 
 	int ifc_link_state;
-	int ifc_watchdog_events;
+	uint32_t ifc_tx_watchdog_events;
 	struct cdev *ifc_led_dev;
+	int ifc_led_state;
 	struct resource *ifc_msix_mem;
 
 	struct if_irq ifc_legacy_irq;
 	struct task ifc_admin_task;
+	struct task ifc_led_task;
 	struct task ifc_vflr_task;
 	struct taskqueue *ifc_tq;
 	struct iflib_filter_info ifc_filter_info;
@@ -337,13 +339,13 @@ typedef struct iflib_sw_tx_desc_array {
 #define	IFC_LEGACY		0x001
 #define	IFC_QFLUSH		0x002
 #define	IFC_MULTISEG		0x004
-#define	IFC_SPARE1		0x008
+#define	IFC_INIT_FAILED		0x008
 #define	IFC_SC_ALLOCATED	0x010
 #define	IFC_INIT_DONE		0x020
 #define	IFC_PREFETCH		0x040
 #define	IFC_DO_RESET		0x080
 #define	IFC_DO_WATCHDOG		0x100
-#define	IFC_SPARE0		0x200
+#define	IFC_DO_RESET_IF_UP	0x200
 #define	IFC_SPARE2		0x400
 #define	IFC_IN_DETACH		0x800
 
@@ -2555,6 +2557,7 @@ iflib_init_locked(if_ctx_t ctx)
 	iflib_txq_t txq;
 	iflib_rxq_t rxq;
 	int i, j, tx_ip_csum_flags, tx_ip6_csum_flags;
+	bool init_failed;
 
 	if_setdrvflagbits(ifp, IFF_DRV_OACTIVE, IFF_DRV_RUNNING);
 	IFDI_INTR_DISABLE(ctx);
@@ -2598,8 +2601,16 @@ iflib_init_locked(if_ctx_t ctx)
 #ifdef INVARIANTS
 	i = if_getdrvflags(ifp);
 #endif
+	STATE_LOCK(ctx);
+	ctx->ifc_flags &= ~IFC_INIT_FAILED;
+	STATE_UNLOCK(ctx);
 	IFDI_INIT(ctx);
 	MPASS(if_getdrvflags(ifp) == i);
+	STATE_LOCK(ctx);
+	init_failed = (ctx->ifc_flags & IFC_INIT_FAILED) != 0;
+	STATE_UNLOCK(ctx);
+	if (init_failed)
+		return;
 	for (i = 0, rxq = ctx->ifc_rxqs; i < scctx->isc_nrxqsets; i++, rxq++) {
 		if (iflib_netmap_rxq_init(ctx, rxq) > 0) {
 			/* This rxq is in netmap mode. Skip normal init. */
@@ -4187,15 +4198,18 @@ _task_fn_admin(void *context, int pending)
 	if_softc_ctx_t sctx = &ctx->ifc_softc_ctx;
 	iflib_txq_t txq;
 	int i;
-	bool oactive, running, do_reset, do_watchdog, in_detach;
+	bool oactive, running, do_reset, do_reset_if_up, do_watchdog;
+	bool in_detach;
 
 	STATE_LOCK(ctx);
 	running = (if_getdrvflags(ctx->ifc_ifp) & IFF_DRV_RUNNING);
 	oactive = (if_getdrvflags(ctx->ifc_ifp) & IFF_DRV_OACTIVE);
 	do_reset = (ctx->ifc_flags & IFC_DO_RESET);
+	do_reset_if_up = (ctx->ifc_flags & IFC_DO_RESET_IF_UP);
 	do_watchdog = (ctx->ifc_flags & IFC_DO_WATCHDOG);
 	in_detach = (ctx->ifc_flags & IFC_IN_DETACH);
-	ctx->ifc_flags &= ~(IFC_DO_RESET | IFC_DO_WATCHDOG);
+	ctx->ifc_flags &= ~(IFC_DO_RESET | IFC_DO_RESET_IF_UP |
+	    IFC_DO_WATCHDOG);
 	STATE_UNLOCK(ctx);
 
 	if ((!running && !oactive) && !(ctx->ifc_sctx->isc_flags & IFLIB_ADMIN_ALWAYS_RUN))
@@ -4204,6 +4218,9 @@ _task_fn_admin(void *context, int pending)
 		return;
 
 	CTX_LOCK(ctx);
+	if (!do_reset && do_reset_if_up &&
+	    (if_getflags(ctx->ifc_ifp) & IFF_UP) != 0)
+		do_reset = true;
 	for (txq = ctx->ifc_txqs, i = 0; i < sctx->isc_ntxqsets; i++, txq++) {
 		CALLOUT_LOCK(txq);
 		callout_stop(&txq->ift_timer);
@@ -4212,7 +4229,7 @@ _task_fn_admin(void *context, int pending)
 	if (ctx->ifc_sctx->isc_flags & IFLIB_HAS_ADMINCQ)
 		IFDI_ADMIN_COMPLETION_HANDLE(ctx);
 	if (do_watchdog) {
-		ctx->ifc_watchdog_events++;
+		ctx->ifc_tx_watchdog_events++;
 		IFDI_WATCHDOG_RESET(ctx);
 	}
 	IFDI_UPDATE_ADMIN_STATUS(ctx);
@@ -4529,7 +4546,9 @@ iflib_if_ioctl(if_t ifp, u_long command, caddr_t data)
 		}
 		iflib_init_locked(ctx);
 		STATE_LOCK(ctx);
-		if_setdrvflags(ifp, bits);
+		/* Preserve the stopped state reported by iflib_init_failed(). */
+		if ((ctx->ifc_flags & IFC_INIT_FAILED) == 0)
+			if_setdrvflags(ifp, bits);
 		STATE_UNLOCK(ctx);
 		CTX_UNLOCK(ctx);
 		break;
@@ -4638,7 +4657,8 @@ iflib_if_ioctl(if_t ifp, u_long command, caddr_t data)
 			if (bits & IFF_DRV_RUNNING && setmask & ~IFCAP_WOL)
 				iflib_init_locked(ctx);
 			STATE_LOCK(ctx);
-			if_setdrvflags(ifp, bits);
+			if ((ctx->ifc_flags & IFC_INIT_FAILED) == 0)
+				if_setdrvflags(ifp, bits);
 			STATE_UNLOCK(ctx);
 			CTX_UNLOCK(ctx);
 		}
@@ -4728,13 +4748,37 @@ iflib_vlan_unregister(void *arg, if_t ifp, uint16_t vtag)
 }
 
 static void
-iflib_led_func(void *arg, int onoff)
+_task_fn_led(void *context, int pending __unused)
 {
-	if_ctx_t ctx = arg;
+	if_ctx_t ctx = context;
+	bool in_detach;
+	int onoff;
+
+	STATE_LOCK(ctx);
+	in_detach = (ctx->ifc_flags & IFC_IN_DETACH) != 0;
+	onoff = ctx->ifc_led_state;
+	STATE_UNLOCK(ctx);
+	if (in_detach)
+		return;
 
 	CTX_LOCK(ctx);
 	IFDI_LED_FUNC(ctx, onoff);
 	CTX_UNLOCK(ctx);
+}
+
+static void
+iflib_led_func(void *arg, int onoff)
+{
+	if_ctx_t ctx = arg;
+	bool in_detach;
+
+	/* led(4) may invoke this callback from a non-sleepable callout. */
+	STATE_LOCK(ctx);
+	ctx->ifc_led_state = onoff;
+	in_detach = (ctx->ifc_flags & IFC_IN_DETACH) != 0;
+	STATE_UNLOCK(ctx);
+	if (!in_detach)
+		taskqueue_enqueue(ctx->ifc_tq, &ctx->ifc_led_task);
 }
 
 /*********************************************************************
@@ -5261,6 +5305,7 @@ iflib_device_register(device_t dev, void *sc, if_shared_ctx_t sctx, if_ctx_t *ct
 	}
 
 	TASK_INIT(&ctx->ifc_admin_task, 0, _task_fn_admin, ctx);
+	TASK_INIT(&ctx->ifc_led_task, 0, _task_fn_led, ctx);
 
 	/* Set up cpu set.  If it fails, use the set of all CPUs. */
 	if (bus_get_cpus(dev, INTR_CPUS, sizeof(ctx->ifc_cpus), &ctx->ifc_cpus) != 0) {
@@ -5391,6 +5436,13 @@ iflib_device_register(device_t dev, void *sc, if_shared_ctx_t sctx, if_ctx_t *ct
 	CTX_UNLOCK(ctx);
 	IFNET_WUNLOCK();
 
+	/* Create led(4) devices if the driver defined the method */
+	kobj_desc = &ifdi_led_func_desc;
+	kobj_method = kobj_lookup_method(((kobj_t)ctx)->ops->cls, NULL,
+	    kobj_desc);
+	if (kobj_method != &kobj_desc->deflt && IFDI_LED_SUPPORTED(ctx))
+		iflib_led_create(ctx);
+
 	return (0);
 
 fail_detach:
@@ -5484,8 +5536,10 @@ iflib_device_deregister(if_ctx_t ctx)
 	CTX_UNLOCK(ctx);
 
 	iflib_rem_pfil(ctx);
-	if (ctx->ifc_led_dev != NULL)
+	if (ctx->ifc_led_dev != NULL) {
 		led_destroy(ctx->ifc_led_dev);
+		taskqueue_drain(ctx->ifc_tq, &ctx->ifc_led_task);
+	}
 
 	iflib_tqg_detach(ctx);
 	iflib_tx_structures_free(ctx);
@@ -5621,6 +5675,7 @@ iflib_device_iov_init_restart(device_t dev, uint16_t num_vfs,
 {
 	if_ctx_t ctx;
 	if_t ifp;
+	bool restart, running;
 	int error;
 
 	ctx = device_get_softc(dev);
@@ -5629,19 +5684,18 @@ iflib_device_iov_init_restart(device_t dev, uint16_t num_vfs,
 	CTX_LOCK(ctx);
 	/*
 	 * Drivers which change the PF queue layout need the complete iflib
-	 * stop/init sequence around their IOV callback.  Keep that transition
-	 * within one context-lock critical section.
+	 * stop/init sequence around their IOV callback when the interface is
+	 * active.  An administratively-down interface has no live queues to
+	 * quiesce, and must remain down after the new layout is installed.
+	 * Keep the transition within one context-lock critical section.
 	 */
-	if ((if_getflags(ifp) & IFF_UP) == 0 ||
-	    (if_getdrvflags(ifp) & IFF_DRV_RUNNING) == 0) {
-		error = ENETDOWN;
-		goto out;
-	}
-
-	iflib_stop(ctx);
+	restart = (if_getflags(ifp) & IFF_UP) != 0;
+	running = (if_getdrvflags(ifp) & IFF_DRV_RUNNING) != 0;
+	if (restart || running)
+		iflib_stop(ctx);
 	error = IFDI_IOV_INIT(ctx, num_vfs, params);
-	iflib_init_locked(ctx);
-out:
+	if (restart)
+		iflib_init_locked(ctx);
 	CTX_UNLOCK(ctx);
 	return (error);
 }
@@ -6970,6 +7024,9 @@ iflib_add_device_sysctl_pre(if_ctx_t ctx)
 
 	SYSCTL_ADD_CONST_STRING(&ctx->ifc_sysctl_ctx, oid_list, OID_AUTO, "driver_version",
 	    CTLFLAG_RD, ctx->ifc_sctx->isc_driver_version, "driver version");
+	SYSCTL_ADD_U32(&ctx->ifc_sysctl_ctx, oid_list, OID_AUTO,
+	    "tx_watchdog_events", CTLFLAG_RD, &ctx->ifc_tx_watchdog_events, 0,
+	    "TX watchdog resets initiated by iflib");
 
 	SYSCTL_ADD_BOOL(&ctx->ifc_sysctl_ctx, oid_list, OID_AUTO, "simple_tx",
 	    CTLFLAG_RDTUN, &ctx->ifc_sysctl_simple_tx, 0,
@@ -7192,6 +7249,25 @@ iflib_request_reset(if_ctx_t ctx)
 
 	STATE_LOCK(ctx);
 	ctx->ifc_flags |= IFC_DO_RESET;
+	STATE_UNLOCK(ctx);
+}
+
+void
+iflib_request_reset_if_up(if_ctx_t ctx)
+{
+
+	STATE_LOCK(ctx);
+	ctx->ifc_flags |= IFC_DO_RESET_IF_UP;
+	STATE_UNLOCK(ctx);
+}
+
+void
+iflib_init_failed(if_ctx_t ctx)
+{
+
+	sx_assert(&ctx->ifc_ctx_sx, SA_XLOCKED);
+	STATE_LOCK(ctx);
+	ctx->ifc_flags |= IFC_INIT_FAILED;
 	STATE_UNLOCK(ctx);
 }
 
