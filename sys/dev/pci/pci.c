@@ -4488,6 +4488,13 @@ pcie_path_mps(device_t dev, uint16_t *mpsp)
 		pcib = device_get_parent(bus);
 		if (pcib == NULL || !is_pci_device(pcib))
 			break;
+		/*
+		 * A PCI function may expose a host bridge for a synthetic PCI
+		 * domain.  Its Device Control belongs to the parent domain and
+		 * does not describe an upstream link in the synthetic hierarchy.
+		 */
+		if (pci_get_domain(pcib) != pci_get_domain(dev))
+			break;
 		dinfo = device_get_ivars(pcib);
 		if (dinfo->cfg.pcie.pcie_location != 0) {
 			mps = pcie_read_config(pcib, PCIER_DEVICE_CTL, 2) &
@@ -4704,6 +4711,13 @@ pcie_reconcile_link_mps(device_t bus)
 		return;
 	pcib = device_get_parent(bus);
 	if (!is_pci_device(pcib))
+		return;
+	/*
+	 * A PCI function may provide a host bridge into a separate domain,
+	 * as Intel VMD does.  Do not treat the function's host-facing PCIe
+	 * Device Control as the upstream end of a link in the child domain.
+	 */
+	if (pci_get_domain(pcib) != pcib_get_domain(bus))
 		return;
 	upinfo = device_get_ivars(pcib);
 	if (upinfo->cfg.pcie.pcie_location == 0)
@@ -7065,6 +7079,28 @@ pcie_apei_error(device_t dev, int sev, uint8_t *aerp)
 }
 
 /*
+ * Return true if the device supports FLR, taking both its advertised
+ * capability and the PCI quirk policy into account.
+ */
+bool
+pcie_flr_supported(device_t dev)
+{
+	struct pci_devinfo *dinfo = device_get_ivars(dev);
+	int cap;
+
+	cap = dinfo->cfg.pcie.pcie_location;
+	if (cap == 0)
+		return (false);
+
+	if (!(pci_read_config(dev, cap + PCIER_DEVICE_CAP, 4) & PCIEM_CAP_FLR) &&
+	    !pci_has_quirk(pci_get_devid(dev), PCI_QUIRK_ENABLE_FLR))
+		return (false);
+	if (pci_has_quirk(pci_get_devid(dev), PCI_QUIRK_DISABLE_FLR))
+		return (false);
+	return (true);
+}
+
+/*
  * Perform a Function Level Reset (FLR) on a device.
  *
  * This function first waits for any pending transactions to complete
@@ -7088,15 +7124,10 @@ pcie_flr(device_t dev, u_int max_delay, bool force)
 	int compl_delay;
 	int cap;
 
-	cap = dinfo->cfg.pcie.pcie_location;
-	if (cap == 0)
+	if (!pcie_flr_supported(dev))
 		return (false);
 
-	if (!(pci_read_config(dev, cap + PCIER_DEVICE_CAP, 4) & PCIEM_CAP_FLR) &&
-	    !pci_has_quirk(pci_get_devid(dev), PCI_QUIRK_ENABLE_FLR))
-		return (false);
-	if (pci_has_quirk(pci_get_devid(dev), PCI_QUIRK_DISABLE_FLR))
-		return (false);
+	cap = dinfo->cfg.pcie.pcie_location;
 
 	/*
 	 * Disable busmastering to prevent generation of new
