@@ -396,7 +396,6 @@ virtio_net_rx_csum(struct mbuf *m, struct virtio_net_hdr *hdr)
 
 	return (0);
 }
-#endif
 
 #define VIRTIO_NET_TX_OFFLOAD_UNKNOWN_ETHTYPE 1
 #define VIRTIO_NET_TX_OFFLOAD_PROTO_MISMATCH 2
@@ -585,5 +584,6 @@ drop:
 	*mp = NULL;
 	return (error);
 }
+#endif /* defined(INET) || defined(INET6) */
 
 #endif /* _VIRTIO_NET_H */

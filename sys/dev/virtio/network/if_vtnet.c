@@ -2614,7 +2614,6 @@ static int
 vtnet_txq_encap(struct vtnet_txq *txq, struct mbuf **m_head, int flags)
 {
 	struct vtnet_tx_header *txhdr;
-	struct virtio_net_hdr *hdr;
 	struct mbuf *m;
 	int error;
 
@@ -2628,13 +2627,6 @@ vtnet_txq_encap(struct vtnet_txq *txq, struct mbuf **m_head, int flags)
 		return (ENOMEM);
 	}
 
-	/*
-	 * Always use the non-mergeable header, regardless if mergable headers
-	 * were negotiated, because for transmit num_buffers is always zero.
-	 * The vtnet_hdr_size is used to enqueue the right header size segment.
-	 */
-	hdr = &txhdr->vth_uhdr.hdr;
-
 	if (m->m_flags & M_VLANTAG) {
 		m = ether_vlanencap(m, m->m_pkthdr.ether_vtag);
 		if ((*m_head = m) == NULL) {
@@ -2645,7 +2637,17 @@ vtnet_txq_encap(struct vtnet_txq *txq, struct mbuf **m_head, int flags)
 	}
 
 	if (m->m_pkthdr.csum_flags & VTNET_CSUM_ALL_OFFLOAD) {
+#if defined(INET) || defined(INET6)
+		struct virtio_net_hdr *hdr;
 		int ret;
+
+		/*
+		 * Always use the non-mergeable header, regardless if mergable
+		 * headers were negotiated, because for transmit num_buffers is
+		 * always zero. The vtnet_hdr_size is used to enqueue the right
+		 * header size segment.
+		 */
+		hdr = &txhdr->vth_uhdr.hdr;
 
 		/*
 		 * Translate the CSUM_* flags in the mbuf to the corresponding
@@ -2677,6 +2679,9 @@ vtnet_txq_encap(struct vtnet_txq *txq, struct mbuf **m_head, int flags)
 			txq->vtntx_stats.vtxs_csum++;
 		if (m->m_pkthdr.csum_flags & (CSUM_IP_TSO | CSUM_IP6_TSO))
 			txq->vtntx_stats.vtxs_tso++;
+#else
+		panic("INET/INET6 csum_flags set without INET/INET6 support");
+#endif /* defined(INET) || defined(INET6) */
 	}
 
 	error = vtnet_txq_enqueue_buf(txq, m_head, txhdr);
