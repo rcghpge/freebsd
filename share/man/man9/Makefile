@@ -1838,6 +1838,7 @@ MLINKS+=pci.9 is_pci_device.9 \
 	pci.9 pci_get_vpd_ident.9 \
 	pci.9 pci_get_vpd_readonly.9 \
 	pci.9 pci_has_pm.9 \
+	pci.9 pci_has_pme.9 \
 	pci.9 pci_iov_attach.9 \
 	pci.9 pci_iov_attach_name.9 \
 	pci.9 pci_iov_detach.9 \
@@ -2491,8 +2492,7 @@ MLINKS+=vm_page_aflag.9 vm_page_aflag_clear.9 \
 	vm_page_aflag.9 vm_page_aflag_set.9 \
 	vm_page_aflag.9 vm_page_reference.9
 MLINKS+=vm_page_free.9 vm_page_free_toq.9 \
-	vm_page_free.9 vm_page_free_zero.9 \
-	vm_page_free.9 vm_page_try_to_free.9
+	vm_page_free.9 vm_page_free_zero.9
 MLINKS+=vm_page_insert.9 vm_page_remove.9
 MLINKS+=vm_page_wire.9 vm_page_unwire.9 \
 	vm_page_wire.9 vm_page_unwire_noq.9 \
