@@ -88,6 +88,7 @@
 #include <dev/pci/pci_private.h>
 
 #include <net/iflib.h>
+#include <net/if_vf_status.h>
 
 #include "ifdi_if.h"
 
@@ -4741,6 +4742,19 @@ iflib_if_ioctl(if_t ifp, u_long command, caddr_t data)
 	return (err);
 }
 
+static int
+iflib_if_vf_status(if_t ifp, struct if_vf_status **statusp)
+{
+	if_ctx_t ctx;
+	int error;
+
+	ctx = if_getsoftc(ifp);
+	CTX_LOCK(ctx);
+	error = IFDI_VF_STATUS(ctx, statusp);
+	CTX_UNLOCK(ctx);
+	return (error);
+}
+
 static uint64_t
 iflib_if_get_counter(if_t ifp, ift_counter cnt)
 {
@@ -6020,6 +6034,9 @@ iflib_register(if_ctx_t ctx)
 	if_setdev(ifp, dev);
 	if_setinitfn(ifp, iflib_if_init);
 	if_setioctlfn(ifp, iflib_if_ioctl);
+	/* VF status describes children of an SR-IOV PF. */
+	if (!CTX_IS_VF(ctx))
+		if_setvfstatusfn(ifp, iflib_if_vf_status);
 #ifdef ALTQ
 	if_setstartfn(ifp, iflib_altq_if_start);
 	if_settransmitfn(ifp, iflib_altq_if_transmit);
@@ -6093,7 +6110,7 @@ iflib_queues_alloc(if_ctx_t ctx)
 	iflib_txq_t txq;
 	iflib_rxq_t rxq;
 	iflib_fl_t fl = NULL;
-	int i, j, cpu, err, txconf, rxconf;
+	int i, j, cpu, err;
 	iflib_dma_info_t ifdip;
 	uint32_t *rxqsizes = scctx->isc_rxqsizes;
 	uint32_t *txqsizes = scctx->isc_txqsizes;
@@ -6133,7 +6150,7 @@ iflib_queues_alloc(if_ctx_t ctx)
 	/*
 	 * XXX handle allocation failure
 	 */
-	for (txconf = i = 0, cpu = CPU_FIRST(); i < ntxqsets; i++, txconf++, txq++, cpu = CPU_NEXT(cpu)) {
+	for (i = 0, cpu = CPU_FIRST(); i < ntxqsets; i++, txq++, cpu = CPU_NEXT(cpu)) {
 		/* Set up some basics */
 
 		if ((ifdip = malloc(sizeof(struct iflib_dma_info) * ntxqs,
@@ -6189,7 +6206,7 @@ iflib_queues_alloc(if_ctx_t ctx)
 		txq->ift_reclaim_thresh = ctx->ifc_sysctl_tx_reclaim_thresh;
 	}
 
-	for (rxconf = i = 0; i < nrxqsets; i++, rxconf++, rxq++) {
+	for (i = 0; i < nrxqsets; i++, rxq++) {
 		/* Set up some basics */
 		callout_init(&rxq->ifr_watchdog, 1);
 
