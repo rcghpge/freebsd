@@ -37,6 +37,8 @@ aio(4)		asomers	Pre-commit review requested.
 ath(4)		adrian	Pre-commit review requested, send to freebsd-wireless@freebsd.org
 contrib/atf		ngie,#test		Pre-commit review requested.
 contrib/googletest	ngie,#test		Pre-commit review requested.
+contrib/kyua		ngie,#test		Pre-commit review requested.
+contrib/lutok		ngie			Pre-commit review requested.
 sbin/ipf	cy			Pre-commit review requested.
 contrib/libcxxrt	dim,emaste		Pre-commit review preferred.
 contrib/llvm-project/compiler-rt	dim	Pre-commit review preferred.
@@ -116,6 +118,7 @@ sys/kern/kern_thr.c	olce	Pre-commit review requested.
 sys/kern/ksched.c	olce	Pre-commit review requested.
 sys/kern/p1003_1b.c	olce	Pre-commit review requested.
 sys/kern/sched_*.c	olce,#scheduler	Pre-commit review requested.
+sys/net/route		pouria	Pre-commit review requested.
 sys/netinet/ip_carp.c	glebius	Pre-commit review recommended.
 sys/netpfil/pf	kp,glebius	Pre-commit review recommended.
 sys/sys/sched.h		olce,#scheduler	Pre-commit review requested.
