@@ -4,3 +4,6 @@
 *.hpp  diff=cpp
 *.py   diff=python
 
+# Potatobot for FreeBSD
+.gitattributes merge=ours
+.github/FUNDING.yml merge=ours
